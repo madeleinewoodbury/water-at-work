@@ -1,5 +1,16 @@
 import Link from 'next/link'
 import { signUp } from '@/app/auth/actions'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export default async function SignUpPage({
   searchParams,
@@ -9,72 +20,69 @@ export default async function SignUpPage({
   const { error } = await searchParams
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-24">
+    <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Create an account
-        </h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Already have an account?{' '}
-          <Link
-            href="/sign-in"
-            className="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-600 dark:text-zinc-50 dark:hover:text-zinc-300"
-          >
-            Sign in
-          </Link>
-        </p>
+        <div className="mb-6 text-center">
+          <span className="text-2xl font-bold tracking-tight">
+            <span className="text-primary">~</span> WaW
+          </span>
+        </div>
 
-        {error && (
-          <p className="mt-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
-            {error}
-          </p>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">Create an account</CardTitle>
+            <CardDescription>Start tracking your hydration today</CardDescription>
+          </CardHeader>
 
-        <form action={signUp} className="mt-6 flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          <CardContent>
+            {error && (
+              <div className="mb-4 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            <form action={signUp} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  minLength={6}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <Button type="submit" className="mt-1 w-full">
+                Create account
+              </Button>
+            </form>
+          </CardContent>
+
+          <CardFooter className="justify-center text-sm text-muted-foreground">
+            Already have an account?&nbsp;
+            <Link
+              href="/sign-in"
+              className="font-medium text-primary underline-offset-4 hover:underline"
             >
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500"
-              placeholder="you@example.com"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="new-password"
-              minLength={6}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="mt-2 rounded-md px-4 py-2.5 text-sm font-semibold bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
-          >
-            Create account
-          </button>
-        </form>
+              Sign in
+            </Link>
+          </CardFooter>
+        </Card>
       </div>
     </main>
   )

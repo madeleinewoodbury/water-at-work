@@ -3,22 +3,37 @@ import Link from 'next/link'
 export default function LandingPage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
-      <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
-        Stay hydrated at work.
+      {/* eyebrow */}
+      <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+        💧 Your hydration companion
+      </span>
+
+      {/* headline */}
+      <h1 className="max-w-2xl text-5xl font-bold tracking-tight sm:text-6xl">
+        <span className="bg-gradient-to-r from-primary to-[oklch(0.50_0.18_196)] dark:to-[oklch(0.65_0.18_192)] bg-clip-text text-transparent">
+          Stay hydrated
+        </span>
+        <br />
+        <span className="text-foreground">at work.</span>
       </h1>
-      <p className="mt-6 max-w-md text-lg text-zinc-600 dark:text-zinc-400">
-        WaW helps you track your daily water intake and build healthy habits — one glass at a time.
+
+      {/* subtext */}
+      <p className="mt-6 max-w-md text-lg text-muted-foreground">
+        WaW helps you hit your daily water goal and build the kind of habits
+        that keep you sharp — one glass at a time.
       </p>
-      <div className="mt-10 flex gap-4">
+
+      {/* CTAs */}
+      <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
         <Link
           href="/sign-up"
-          className="rounded-md px-6 py-3 text-sm font-semibold bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/85"
         >
-          Get started
+          Get started free
         </Link>
         <Link
           href="/sign-in"
-          className="rounded-md px-6 py-3 text-sm font-semibold text-zinc-700 border border-zinc-300 hover:bg-zinc-50 dark:text-zinc-300 dark:border-zinc-700 dark:hover:bg-zinc-900 transition-colors"
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-border px-8 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
         >
           Sign in
         </Link>
