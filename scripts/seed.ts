@@ -36,10 +36,12 @@ async function seed() {
       console.log(`  skip  ${user.email} (already exists)`)
     } else if (error) {
       console.error(`  error  ${user.email}: ${error.message}`)
+      continue
     } else {
       console.log(`  created  ${user.email}`)
     }
   }
+
 }
 
 seed()
