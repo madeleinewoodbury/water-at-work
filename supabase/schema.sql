@@ -11,10 +11,11 @@
 -- ============================================================
 
 CREATE TABLE public.users (
-  id          UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email       TEXT        NOT NULL,
-  daily_goal  INTEGER     NOT NULL DEFAULT 32,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id           UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email        TEXT        NOT NULL,
+  display_name TEXT,
+  daily_goal   INTEGER     NOT NULL DEFAULT 32,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
@@ -38,8 +39,8 @@ CREATE POLICY "Authenticated users can view all users"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
-  INSERT INTO public.users (id, email)
-  VALUES (NEW.id, NEW.email);
+  INSERT INTO public.users (id, email, display_name)
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data ->> 'display_name');
   RETURN NEW;
 END;
 $$;

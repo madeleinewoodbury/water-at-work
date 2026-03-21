@@ -14,9 +14,9 @@ import {
 
 const PRESETS = [8, 12, 16, 24]
 
-type Props = { personalTotal: number }
+type Props = { personalTotal: number; dailyGoal: number }
 
-export default function WaterInputCard({ personalTotal }: Props) {
+export default function WaterInputCard({ personalTotal, dailyGoal }: Props) {
   const [ounces, setOunces] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -44,6 +44,7 @@ export default function WaterInputCard({ personalTotal }: Props) {
         <CardDescription>
           Your total today:{' '}
           <span className="font-semibold text-foreground">{personalTotal} oz</span>
+          <span className="text-muted-foreground"> / {dailyGoal} oz goal</span>
         </CardDescription>
       </CardHeader>
       <CardContent>

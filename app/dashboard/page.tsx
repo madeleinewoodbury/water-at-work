@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getDisplayName } from '@/lib/utils'
 import WaterInputCard from '@/components/dashboard/WaterInputCard'
 import TeamProgressCard from '@/components/dashboard/TeamProgressCard'
 import UserListCard from '@/components/dashboard/UserListCard'
@@ -19,7 +20,7 @@ export default async function DashboardPage() {
       .from('intake_logs')
       .select('user_id, ounces')
       .eq('date', today),
-    supabase.from('users').select('id, email'),
+    supabase.from('users').select('id, email, display_name, daily_goal'),
   ])
 
   const userTotals: Record<string, number> = {}
@@ -27,21 +28,24 @@ export default async function DashboardPage() {
     userTotals[row.user_id] = (userTotals[row.user_id] ?? 0) + row.ounces
   }
 
+  const currentUser = (teamUsers ?? []).find((u) => u.id === user.id)
   const personalTotal = userTotals[user.id] ?? 0
+  const personalGoal = currentUser?.daily_goal ?? 32
   const teamTotal = Object.values(userTotals).reduce((s, n) => s + n, 0)
+  const teamGoal = (teamUsers ?? []).reduce((sum, u) => sum + (u.daily_goal ?? 32), 0)
 
   const userList = (teamUsers ?? [])
     .map((u) => ({
       id: u.id,
-      displayName: u.email.split('@')[0],
+      displayName: getDisplayName(u),
       ounces: userTotals[u.id] ?? 0,
     }))
     .sort((a, b) => b.ounces - a.ounces)
 
   return (
-    <main className="container mx-auto grid gap-4 p-6 md:grid-cols-2">
-      <WaterInputCard personalTotal={personalTotal} />
-      <TeamProgressCard teamTotal={teamTotal} memberCount={teamUsers?.length ?? 0} />
+    <main className="mx-auto grid w-full max-w-[1200px] gap-4 px-6 py-6 md:grid-cols-2">
+      <WaterInputCard personalTotal={personalTotal} dailyGoal={personalGoal} />
+      <TeamProgressCard teamTotal={teamTotal} memberCount={teamUsers?.length ?? 0} teamGoal={teamGoal} />
       <UserListCard users={userList} currentUserId={user.id} />
     </main>
   )

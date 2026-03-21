@@ -9,10 +9,11 @@ import {
 type Props = {
   teamTotal: number
   memberCount: number
+  teamGoal: number
 }
 
-export default function TeamProgressCard({ teamTotal, memberCount }: Props) {
-  const goal = memberCount * 64
+export default function TeamProgressCard({ teamTotal, memberCount, teamGoal }: Props) {
+  const goal = teamGoal
 
   return (
     <Card>
