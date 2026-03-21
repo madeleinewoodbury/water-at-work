@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import TeamWaterSVG from '@/components/dashboard/TeamWaterSVG'
 
 type Props = {
   teamTotal: number
@@ -13,23 +14,16 @@ type Props = {
 }
 
 export default function TeamProgressCard({ teamTotal, memberCount, teamGoal }: Props) {
-  const goal = teamGoal
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Team Progress</CardTitle>
         <CardDescription>
-          {memberCount} {memberCount === 1 ? 'member' : 'members'} · goal: {goal} oz
+          {memberCount} {memberCount === 1 ? 'member' : 'members'} · goal: {teamGoal} oz
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-4xl font-bold tabular-nums text-primary">
-          {teamTotal} oz
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          combined today
-        </p>
+        <TeamWaterSVG teamTotal={teamTotal} teamGoal={teamGoal} />
       </CardContent>
     </Card>
   )

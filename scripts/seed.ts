@@ -25,6 +25,7 @@ const testUsers = [
 ]
 
 const INTAKE_AMOUNTS = [8, 12, 16, 24]
+const TODAY_AMOUNTS = [4, 8, 8, 12] // lighter amounts for today (partial day)
 const HISTORY_DAYS = 21
 
 /** Delete all existing auth users (cascades to public.users and intake_logs) */
@@ -58,17 +59,23 @@ function generateIntakeLogs(userId: string, userIndex: number) {
     const skipSeed = userIndex * 1000 + daysAgo
     if (seededRandom(skipSeed) < 0.15 && daysAgo > 0) continue
 
-    // 2-4 entries per day
-    const entryCount = 2 + Math.floor(seededRandom(skipSeed + 1) * 3)
+    // Today: 1-2 small entries (partial day); other days: 2-4 entries
+    const isToday = daysAgo === 0
+    const entryCount = isToday
+      ? 1 + Math.floor(seededRandom(skipSeed + 1) * 2)
+      : 2 + Math.floor(seededRandom(skipSeed + 1) * 3)
+
+    const amounts = isToday ? TODAY_AMOUNTS : INTAKE_AMOUNTS
 
     for (let e = 0; e < entryCount; e++) {
       const amountIndex = Math.floor(
-        seededRandom(skipSeed + e * 7 + 2) * INTAKE_AMOUNTS.length
+        seededRandom(skipSeed + e * 7 + 2) * amounts.length
       )
-      const ounces = INTAKE_AMOUNTS[amountIndex]
+      const ounces = amounts[amountIndex]
 
       // Spread entries across the workday (8am - 5pm)
-      const hour = 8 + Math.floor(seededRandom(skipSeed + e * 13 + 3) * 9)
+      const maxHour = isToday ? 4 : 9 // today only morning entries
+      const hour = 8 + Math.floor(seededRandom(skipSeed + e * 13 + 3) * maxHour)
       const minute = Math.floor(seededRandom(skipSeed + e * 17 + 4) * 60)
       const entryDate = new Date(date)
       entryDate.setHours(hour, minute, 0, 0)
