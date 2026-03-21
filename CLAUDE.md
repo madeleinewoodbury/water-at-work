@@ -22,9 +22,21 @@ No test runner is configured.
 - **TypeScript 5** — strict mode, `@/*` path alias maps to project root
 - **Tailwind CSS 4** — configured via `@tailwindcss/postcss` (v4 syntax differs from v3)
 - **ESLint 9** — flat config format (`eslint.config.mjs`)
+- **Supabase** — Postgres + Auth + RLS; `@supabase/ssr` for SSR session handling
+  - Server client: `lib/supabase/server.ts` (`createServerClient`)
+  - Browser client: `lib/supabase/client.ts` (`createBrowserClient`)
+  - DB schema: `supabase/schema.sql` — run top-to-bottom in the Supabase SQL editor
 
 ## Architecture
 
 Uses the Next.js App Router. All routes live under `app/`. Layouts are defined via `layout.tsx` files; pages via `page.tsx`. Server components are the default — add `"use client"` only when needed.
 
 Before adding routes, data fetching, caching, or mutations, read the relevant guide in `node_modules/next/dist/docs/01-app/01-getting-started/`.
+
+**Middleware** lives in `proxy.ts` (not `middleware.ts`) — Next.js 16 renamed it.
+
+**Server actions** live alongside their route: `app/[route]/actions.ts`, marked `'use server'`. After a mutation call `revalidatePath()` to refresh server component data.
+
+**shadcn/ui** uses the Base Nova preset (`@base-ui/react` primitives). `button.tsx` is `"use client"` — do not import `buttonVariants` in server components; use plain Tailwind classes instead.
+
+**ESLint** enforces `react-hooks/set-state-in-effect` — calling `setState` synchronously inside `useEffect` is an error. Use `useTransition` for async state updates tied to server actions.
