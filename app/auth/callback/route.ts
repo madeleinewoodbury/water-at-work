@@ -1,0 +1,41 @@
+import { type EmailOtpType } from '@supabase/supabase-js'
+import { type NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+export async function GET(request: NextRequest) {
+  const { searchParams, origin } = request.nextUrl
+  const token_hash = searchParams.get('token_hash')
+  const type = searchParams.get('type') as EmailOtpType | null
+  const code = searchParams.get('code')
+
+  const supabase = await createClient()
+
+  // PKCE flow (OAuth, some magic link setups)
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) {
+      return NextResponse.redirect(
+        new URL(`/sign-in?error=${encodeURIComponent(error.message)}`, origin)
+      )
+    }
+    return NextResponse.redirect(new URL('/dashboard', origin))
+  }
+
+  // OTP flow (email confirmation, password reset)
+  if (token_hash && type) {
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash })
+    if (error) {
+      return NextResponse.redirect(
+        new URL(`/sign-in?error=${encodeURIComponent(error.message)}`, origin)
+      )
+    }
+    if (type === 'recovery') {
+      return NextResponse.redirect(new URL('/auth/update-password', origin))
+    }
+    return NextResponse.redirect(new URL('/dashboard', origin))
+  }
+
+  return NextResponse.redirect(
+    new URL('/sign-in?error=Invalid+confirmation+link', origin)
+  )
+}

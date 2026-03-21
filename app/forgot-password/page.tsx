@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { signIn } from '@/app/auth/actions'
+import { forgotPassword } from '@/app/auth/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-export default async function SignInPage({
+export default async function ForgotPasswordPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>
@@ -30,8 +30,10 @@ export default async function SignInPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Welcome back</CardTitle>
-            <CardDescription>Sign in to your account to continue</CardDescription>
+            <CardTitle className="text-xl">Reset your password</CardTitle>
+            <CardDescription>
+              Enter your email and we&apos;ll send you a reset link
+            </CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -41,7 +43,7 @@ export default async function SignInPage({
               </div>
             )}
 
-            <form action={signIn} className="flex flex-col gap-4">
+            <form action={forgotPassword} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -54,39 +56,19 @@ export default async function SignInPage({
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                />
-              </div>
-
               <Button type="submit" className="mt-1 w-full">
-                Sign in
+                Send reset link
               </Button>
             </form>
           </CardContent>
 
           <CardFooter className="justify-center text-sm text-muted-foreground">
-            Don&apos;t have an account?&nbsp;
+            Remember your password?&nbsp;
             <Link
-              href="/sign-up"
+              href="/sign-in"
               className="font-medium text-primary underline-offset-4 hover:underline"
             >
-              Sign up
+              Sign in
             </Link>
           </CardFooter>
         </Card>
