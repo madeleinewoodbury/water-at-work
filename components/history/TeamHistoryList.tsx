@@ -12,6 +12,7 @@ type TeamDay = {
   teamTotal: number
   teamGoal: number
   metGoal: boolean
+  members: { name: string; ounces: number }[]
 }
 
 type Props = { teamDays: TeamDay[] }
@@ -60,6 +61,7 @@ export default function TeamHistoryList({ teamDays }: Props) {
             teamTotal={day.teamTotal}
             teamGoal={day.teamGoal}
             metGoal={day.metGoal}
+            members={day.members}
           />
         ))}
       </div>

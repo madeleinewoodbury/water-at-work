@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card'
+import { formatWaterAmount } from '@/lib/utils'
 
 type TeamDay = {
   date: string
@@ -7,6 +8,7 @@ type TeamDay = {
   teamTotal: number
   teamGoal: number
   metGoal: boolean
+  members: { name: string; ounces: number }[]
 }
 
 type Props = { teamDays: TeamDay[] }
@@ -17,21 +19,21 @@ export default function TeamHistorySummary({ teamDays }: Props) {
   const avgOzPerDay = teamDays.length > 0 ? Math.round(totalOunces / teamDays.length) : 0
   const avgParticipation =
     teamDays.length > 0
-      ? (teamDays.reduce((s, d) => s + d.participantCount, 0) / teamDays.length).toFixed(1)
-      : '0'
+      ? Math.round(teamDays.reduce((s, d) => s + d.participantCount, 0) / teamDays.length)
+      : 0
   const totalMemberCount = teamDays[0]?.totalMemberCount ?? 0
 
   return (
     <Card size="sm">
       <CardContent>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat label="Total team oz" value={`${totalOunces} oz`} />
+          <Stat label="Total team" value={formatWaterAmount(totalOunces)} />
           <Stat label="Days goal met" value={String(daysMetGoal)} />
           <Stat
             label="Avg participation"
             value={`${avgParticipation} of ${totalMemberCount}`}
           />
-          <Stat label="Avg team oz/day" value={`${avgOzPerDay} oz`} />
+          <Stat label="Avg team/day" value={formatWaterAmount(avgOzPerDay)} />
         </div>
       </CardContent>
     </Card>

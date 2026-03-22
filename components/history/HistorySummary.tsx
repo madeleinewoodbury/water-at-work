@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card'
+import { formatWaterAmount } from '@/lib/utils'
 
 type Props = {
   totalOunces: number
@@ -19,13 +20,13 @@ export default function HistorySummary({
     <Card size="sm">
       <CardContent>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat label="Total" value={`${totalOunces} oz`} />
+          <Stat label="Total" value={formatWaterAmount(totalOunces)} />
           <Stat label="Days tracked" value={String(daysTracked)} />
           <Stat
             label={`Goal met (${dailyGoal} oz)`}
             value={String(daysMetGoal)}
           />
-          <Stat label="Daily avg" value={`${avgPerDay} oz`} />
+          <Stat label="Daily avg" value={formatWaterAmount(avgPerDay)} />
         </div>
       </CardContent>
     </Card>

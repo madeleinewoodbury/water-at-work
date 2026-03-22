@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getDisplayName } from '@/lib/utils'
 import HistoryFilter from '@/components/history/HistoryFilter'
 import HistorySummary from '@/components/history/HistorySummary'
 import HistoryList from '@/components/history/HistoryList'
@@ -55,7 +56,7 @@ export default async function HistoryPage({
         .select('user_id, start_date, end_date')
         .lte('start_date', toDate)
         .gte('end_date', fromDate),
-      supabase.from('users').select('id, daily_goal'),
+      supabase.from('users').select('id, email, display_name, daily_goal'),
     ])
 
     // Build opt-out range map per user
@@ -93,6 +94,14 @@ export default async function HistoryPage({
         }
         const teamTotal = Object.values(userTotals).reduce((s, n) => s + n, 0)
 
+        const userMap = new Map((allUsers ?? []).map((u) => [u.id, u]))
+        const members = Object.entries(userTotals)
+          .map(([uid, oz]) => {
+            const u = userMap.get(uid)
+            return { name: u ? getDisplayName(u) : 'Unknown', ounces: oz }
+          })
+          .sort((a, b) => b.ounces - a.ounces)
+
         return {
           date,
           participantCount: activeUsers.length,
@@ -100,6 +109,7 @@ export default async function HistoryPage({
           teamTotal,
           teamGoal,
           metGoal: teamGoal > 0 && teamTotal >= teamGoal,
+          members,
         }
       })
       .sort((a, b) => b.date.localeCompare(a.date))

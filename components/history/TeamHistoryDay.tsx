@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Check } from 'lucide-react'
+import { formatWaterAmount } from '@/lib/utils'
+
+type Member = { name: string; ounces: number }
 
 type Props = {
   date: string
@@ -10,6 +13,7 @@ type Props = {
   teamTotal: number
   teamGoal: number
   metGoal: boolean
+  members: Member[]
 }
 
 function formatDate(dateStr: string): string {
@@ -33,6 +37,7 @@ export default function TeamHistoryDay({
   teamTotal,
   teamGoal,
   metGoal,
+  members,
 }: Props) {
   const [expanded, setExpanded] = useState(false)
   const percent = teamGoal > 0 ? Math.min(100, Math.round((teamTotal / teamGoal) * 100)) : 0
@@ -67,15 +72,15 @@ export default function TeamHistoryDay({
           </div>
           <span className="min-w-[90px] text-right text-sm tabular-nums">
             <span className={`font-semibold ${metGoal ? 'text-primary' : ''}`}>
-              {teamTotal}
+              {formatWaterAmount(teamTotal)}
             </span>
-            <span className="text-muted-foreground"> / {teamGoal} oz</span>
+            <span className="text-muted-foreground"> / {formatWaterAmount(teamGoal)}</span>
           </span>
         </div>
       </button>
 
       {expanded && (
-        <div className="border-t border-border px-4 py-3">
+        <div className="border-t border-border px-4 py-3 space-y-2">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
               {participantCount} of {totalMemberCount}{' '}
@@ -88,6 +93,21 @@ export default function TeamHistoryDay({
               </span>
             )}
           </div>
+          {members.length > 0 && (
+            <ul className="space-y-1">
+              {members.map((m) => (
+                <li
+                  key={m.name}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span className="text-foreground">{m.name}</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {m.ounces} oz
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>
