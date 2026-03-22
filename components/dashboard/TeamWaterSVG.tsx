@@ -14,6 +14,7 @@ const GLASS_TOP = 15
 const GLASS_BOTTOM = 145
 const GOAL_Y = GLASS_TOP + 12 // goal line sits just below the rim
 const FILL_ZONE = GLASS_BOTTOM - GOAL_Y // 0-100% fills this range
+const OVERFLOW_ZONE = GOAL_Y - GLASS_TOP // 12px above goal line to rim
 const TOP_HALF_W = 45 // half-width at top
 const BOT_HALF_W = 35 // half-width at bottom
 const CENTER_X = 65 // shifted slightly left to make room for "Goal" label
@@ -38,11 +39,28 @@ function widthAtY(y: number) {
   return 2 * (TOP_HALF_W + t * (BOT_HALF_W - TOP_HALF_W))
 }
 
+// Bubble configuration for celebration
+const BUBBLES = [
+  { cx: CENTER_X - 15, r: 2.5, duration: 3, delay: 0 },
+  { cx: CENTER_X + 10, r: 2, duration: 2.5, delay: 0.8 },
+  { cx: CENTER_X - 5, r: 3, duration: 3.5, delay: 0.3 },
+  { cx: CENTER_X + 20, r: 1.5, duration: 2.8, delay: 1.2 },
+  { cx: CENTER_X, r: 2, duration: 3.2, delay: 0.6 },
+]
+
+function getCelebrationText(percentage: number) {
+  if (percentage >= 120) return `${percentage}% — unstoppable!`
+  if (percentage > 100) return `${percentage}% — above and beyond!`
+  if (percentage === 100) return 'Goal reached!'
+  return `${percentage}% of team goal`
+}
+
 export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps) {
   const [mounted, setMounted] = useState(false)
 
-  const fillPercent = teamGoal > 0 ? Math.min(teamTotal / teamGoal, 1) : 0
+  const fillPercent = teamGoal > 0 ? teamTotal / teamGoal : 0
   const percentage = teamGoal > 0 ? Math.round((teamTotal / teamGoal) * 100) : 0
+  const goalReached = percentage >= 100
 
   // Trigger entrance animation after mount
   useEffect(() => {
@@ -50,9 +68,14 @@ export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps)
     return () => cancelAnimationFrame(frame)
   }, [])
 
-  // Fill dimensions: 100% = reaches goal line, capped there
-  const fillHeight = mounted ? fillPercent * FILL_ZONE : 0
-  const fillY = GLASS_BOTTOM - fillHeight
+  // Regular fill: 0-100% maps to FILL_ZONE (bottom to goal line)
+  const regularFill = mounted ? Math.min(fillPercent, 1) * FILL_ZONE : 0
+  // Overflow: above 100% fills the 12px zone above goal line. 150% = full to rim.
+  const overflowFill = mounted
+    ? Math.min(Math.max(fillPercent - 1, 0) * 2, 1) * OVERFLOW_ZONE
+    : 0
+  const totalFillHeight = regularFill + overflowFill
+  const fillY = GLASS_BOTTOM - totalFillHeight
 
   // Goal line geometry
   const goalLineWidth = widthAtY(GOAL_Y)
@@ -75,31 +98,98 @@ export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps)
             <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.6" />
             <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.85" />
           </linearGradient>
+          <linearGradient id="overflow-gradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.75" />
+          </linearGradient>
+          {goalReached && (
+            <filter id="gold-glow">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          )}
+          <style>{`
+            @keyframes bubble-rise {
+              0% { transform: translateY(0); opacity: 0.6; }
+              50% { opacity: 0.4; }
+              100% { transform: translateY(-90px); opacity: 0; }
+            }
+            @keyframes shimmer {
+              0%, 100% { opacity: 0.3; }
+              50% { opacity: 0.7; }
+            }
+          `}</style>
         </defs>
 
         {/* Water fill (clipped to glass shape) */}
         <g clipPath="url(#glass-clip)">
+          {/* Main water fill */}
           <rect
             x={CENTER_X - TOP_HALF_W}
             y={fillY}
             width={TOP_HALF_W * 2}
-            height={fillHeight}
+            height={totalFillHeight}
             fill="url(#water-gradient)"
             style={{
               transition: 'y 0.8s ease-out, height 0.8s ease-out',
             }}
           />
+
+          {/* Overflow band above goal line — brighter shade */}
+          {overflowFill > 0 && (
+            <rect
+              x={CENTER_X - TOP_HALF_W}
+              y={fillY}
+              width={TOP_HALF_W * 2}
+              height={overflowFill}
+              fill="url(#overflow-gradient)"
+              style={{
+                transition: 'y 0.8s ease-out, height 0.8s ease-out',
+              }}
+            />
+          )}
+
+          {/* Shimmer line at water surface */}
+          {goalReached && (
+            <rect
+              x={CENTER_X - TOP_HALF_W}
+              y={fillY}
+              width={TOP_HALF_W * 2}
+              height={2}
+              fill="white"
+              opacity="0.4"
+              style={{ animation: 'shimmer 2s ease-in-out infinite' }}
+            />
+          )}
+
+          {/* Celebration bubbles */}
+          {goalReached &&
+            BUBBLES.map((b, i) => (
+              <circle
+                key={i}
+                cx={b.cx}
+                cy={GLASS_BOTTOM - 10}
+                r={b.r}
+                fill="white"
+                opacity="0.5"
+                style={{
+                  animation: `bubble-rise ${b.duration}s ease-out ${b.delay}s infinite`,
+                }}
+              />
+            ))}
         </g>
 
         {/* Glass outline */}
         <path
           d={GLASS_PATH}
           fill="none"
-          stroke="var(--muted-foreground)"
-          strokeWidth="2"
+          stroke={goalReached ? 'oklch(0.75 0.15 85)' : 'var(--muted-foreground)'}
+          strokeWidth={goalReached ? 2.5 : 2}
           strokeLinecap="round"
           strokeLinejoin="round"
-          opacity="0.5"
+          opacity={goalReached ? 0.8 : 0.5}
+          filter={goalReached ? 'url(#gold-glow)' : undefined}
+          style={{ transition: 'stroke 0.5s, opacity 0.5s' }}
         />
 
         {/* Goal line (slightly below rim) */}
@@ -108,19 +198,21 @@ export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps)
           y1={GOAL_Y}
           x2={goalLineX2}
           y2={GOAL_Y}
-          stroke="var(--muted-foreground)"
+          stroke={goalReached ? 'oklch(0.75 0.15 85)' : 'var(--muted-foreground)'}
           strokeWidth="1.5"
           strokeDasharray="4 3"
           opacity="0.6"
+          style={{ transition: 'stroke 0.5s' }}
         />
 
         {/* Goal label */}
         <text
           x={goalLineX2 + 5}
           y={GOAL_Y + 4}
-          fill="var(--muted-foreground)"
+          fill={goalReached ? 'oklch(0.75 0.15 85)' : 'var(--muted-foreground)'}
           fontSize="9"
           opacity="0.7"
+          style={{ transition: 'fill 0.5s' }}
         >
           Goal
         </text>
@@ -131,8 +223,8 @@ export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps)
         <p className="text-2xl font-bold tabular-nums text-primary">
           {teamTotal} <span className="text-base font-normal text-muted-foreground">/ {teamGoal} oz</span>
         </p>
-        <p className="text-sm text-muted-foreground">
-          {percentage}% of team goal
+        <p className={`text-sm ${goalReached ? 'font-medium text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+          {getCelebrationText(percentage)}
         </p>
       </div>
     </div>
