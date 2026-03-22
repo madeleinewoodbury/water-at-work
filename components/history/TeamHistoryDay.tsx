@@ -1,18 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
-
-type Entry = {
-  ounces: number
-  created_at: string
-}
+import { ChevronDown, ChevronRight, Check } from 'lucide-react'
 
 type Props = {
   date: string
-  total: number
-  dailyGoal: number
-  entries: Entry[]
+  participantCount: number
+  totalMemberCount: number
+  teamTotal: number
+  teamGoal: number
+  metGoal: boolean
 }
 
 function formatDate(dateStr: string): string {
@@ -24,22 +21,21 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function formatTime(timestamp: string): string {
-  return new Date(timestamp).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
 function isWeekend(dateStr: string): boolean {
   const day = new Date(dateStr + 'T00:00:00').getDay()
   return day === 0 || day === 6
 }
 
-export default function HistoryDay({ date, total, dailyGoal, entries }: Props) {
+export default function TeamHistoryDay({
+  date,
+  participantCount,
+  totalMemberCount,
+  teamTotal,
+  teamGoal,
+  metGoal,
+}: Props) {
   const [expanded, setExpanded] = useState(false)
-  const metGoal = total >= dailyGoal
-  const percent = Math.min(100, Math.round((total / dailyGoal) * 100))
+  const percent = teamGoal > 0 ? Math.min(100, Math.round((teamTotal / teamGoal) * 100)) : 0
   const weekend = isWeekend(date)
 
   return (
@@ -71,26 +67,27 @@ export default function HistoryDay({ date, total, dailyGoal, entries }: Props) {
           </div>
           <span className="min-w-[90px] text-right text-sm tabular-nums">
             <span className={`font-semibold ${metGoal ? 'text-primary' : ''}`}>
-              {total}
+              {teamTotal}
             </span>
-            <span className="text-muted-foreground"> / {dailyGoal} oz</span>
+            <span className="text-muted-foreground"> / {teamGoal} oz</span>
           </span>
         </div>
       </button>
 
-      {expanded && entries.length > 0 && (
-        <div className="border-t border-border px-4 py-2">
-          <ul className="space-y-1">
-            {entries.map((entry, i) => (
-              <li
-                key={i}
-                className="flex items-center justify-between py-1 text-sm text-muted-foreground"
-              >
-                <span>{entry.ounces} oz</span>
-                <span>{formatTime(entry.created_at)}</span>
-              </li>
-            ))}
-          </ul>
+      {expanded && (
+        <div className="border-t border-border px-4 py-3">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>
+              {participantCount} of {totalMemberCount}{' '}
+              {totalMemberCount === 1 ? 'member' : 'members'} participating
+            </span>
+            {metGoal && (
+              <span className="flex items-center gap-1 text-primary text-xs font-medium">
+                <Check className="size-3" />
+                Goal met
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

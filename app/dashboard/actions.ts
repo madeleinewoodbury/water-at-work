@@ -93,3 +93,48 @@ export async function deleteIntake(
   revalidatePath('/dashboard')
   return null
 }
+
+export async function optOutToday(): Promise<ActionState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  const today = new Date().toISOString().split('T')[0]
+
+  const { error } = await supabase.from('opt_outs').insert({
+    user_id: user.id,
+    start_date: today,
+    end_date: today,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard')
+  return null
+}
+
+export async function optBackIn(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  const id = formData.get('id')
+  if (!id || typeof id !== 'string') return { error: 'Invalid entry' }
+
+  const { error } = await supabase
+    .from('opt_outs')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard')
+  return null
+}

@@ -120,3 +120,42 @@ CREATE POLICY "Users can delete own avatar"
 CREATE POLICY "Public avatar read"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'avatars');
+
+
+-- ============================================================
+-- 4. public.opt_outs
+--    Each row = one user's opt-out window (inclusive on both ends).
+--    A single-day opt-out: start_date = end_date = that date.
+-- ============================================================
+
+CREATE TABLE public.opt_outs (
+  id         UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID  NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  start_date DATE  NOT NULL,
+  end_date   DATE  NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT opt_outs_date_order CHECK (end_date >= start_date)
+);
+
+CREATE INDEX opt_outs_user_start_end_idx
+  ON public.opt_outs (user_id, start_date, end_date);
+
+ALTER TABLE public.opt_outs ENABLE ROW LEVEL SECURITY;
+
+-- All authenticated users can read all opt-outs (needed for team calcs)
+CREATE POLICY "Authenticated users can read all opt_outs"
+  ON public.opt_outs FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Users can only insert their own opt-outs
+CREATE POLICY "Users can insert own opt_out"
+  ON public.opt_outs FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can only delete their own opt-outs
+CREATE POLICY "Users can delete own opt_out"
+  ON public.opt_outs FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);

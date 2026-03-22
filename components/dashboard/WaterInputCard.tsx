@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
-import { logIntake, updateIntake, deleteIntake } from '@/app/dashboard/actions'
+import { logIntake, updateIntake, deleteIntake, optOutToday, optBackIn } from '@/app/dashboard/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -17,13 +17,19 @@ const PRESETS = [8, 12, 16, 24]
 
 type Entry = { id: string; ounces: number; created_at: string }
 
-type Props = { personalTotal: number; dailyGoal: number; entries: Entry[] }
+type Props = {
+  personalTotal: number
+  dailyGoal: number
+  entries: Entry[]
+  isOptedOut: boolean
+  optOutId: string | null
+}
 
 function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
-export default function WaterInputCard({ personalTotal, dailyGoal, entries }: Props) {
+export default function WaterInputCard({ personalTotal, dailyGoal, entries, isOptedOut, optOutId }: Props) {
   const [ounces, setOunces] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -73,6 +79,20 @@ export default function WaterInputCard({ personalTotal, dailyGoal, entries }: Pr
     })
   }
 
+  function handleOptOut() {
+    startTransition(async () => {
+      await optOutToday()
+    })
+  }
+
+  function handleOptBackIn(id: string) {
+    const fd = new FormData()
+    fd.set('id', id)
+    startTransition(async () => {
+      await optBackIn(null, fd)
+    })
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -84,6 +104,19 @@ export default function WaterInputCard({ personalTotal, dailyGoal, entries }: Pr
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
+        {isOptedOut && (
+          <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+            <span>You are sitting out today.</span>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => optOutId && handleOptBackIn(optOutId)}
+              className="text-primary underline underline-offset-2 disabled:opacity-50"
+            >
+              Opt back in
+            </button>
+          </div>
+        )}
         <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((oz) => (
@@ -188,6 +221,18 @@ export default function WaterInputCard({ personalTotal, dailyGoal, entries }: Pr
               )}
             </ul>
             {editError && <p className="mt-1 text-xs text-destructive">{editError}</p>}
+          </div>
+        )}
+        {!isOptedOut && (
+          <div className="border-t border-border pt-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={handleOptOut}
+              className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+            >
+              Sitting out today? Opt out
+            </button>
           </div>
         )}
       </CardContent>

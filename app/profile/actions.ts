@@ -194,3 +194,70 @@ export async function deleteAccount(
 
   redirect('/sign-in')
 }
+
+export async function addOptOut(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  const startDate = formData.get('start_date') as string
+  const endDate = formData.get('end_date') as string
+
+  const isValidDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s))
+  if (!isValidDate(startDate) || !isValidDate(endDate)) {
+    return { error: 'Invalid date format' }
+  }
+  if (endDate < startDate) {
+    return { error: 'End date must be on or after start date' }
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+  if (startDate < today) {
+    return { error: 'Start date cannot be in the past' }
+  }
+
+  const { error } = await supabase.from('opt_outs').insert({
+    user_id: user.id,
+    start_date: startDate,
+    end_date: endDate,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/profile')
+  revalidatePath('/dashboard')
+  return { success: 'Opt-out scheduled' }
+}
+
+export async function deleteOptOut(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  const id = formData.get('id') as string
+  if (!id) return { error: 'Invalid entry' }
+
+  const { error } = await supabase
+    .from('opt_outs')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/profile')
+  revalidatePath('/dashboard')
+  return null
+}

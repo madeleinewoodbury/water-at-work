@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Card, CardContent } from '@/components/ui/card'
 
 type Props = {
@@ -17,10 +18,24 @@ export default function HistoryFilter({ defaultFrom, defaultTo }: Props) {
   const [to, setTo] = useState(defaultTo)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [excludeWeekends, setExcludeWeekends] = useState(
+    () => searchParams.get('show_weekends') !== '1'
+  )
 
   const today = new Date().toISOString().split('T')[0]
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function navigate(newFrom: string, newTo: string, newExclude: boolean) {
+    const params = new URLSearchParams()
+    params.set('from', newFrom)
+    params.set('to', newTo)
+    const tab = searchParams.get('tab')
+    if (tab) params.set('tab', tab)
+    if (!newExclude) params.set('show_weekends', '1')
+    router.push(`/history?${params.toString()}`)
+  }
+
+  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
 
@@ -33,13 +48,20 @@ export default function HistoryFilter({ defaultFrom, defaultTo }: Props) {
       return
     }
 
-    router.push(`/history?from=${from}&to=${to}`)
+    navigate(from, to, excludeWeekends)
+  }
+
+  function handleExcludeChange(checked: boolean) {
+    setExcludeWeekends(checked)
+    if (from && to && from <= to) {
+      navigate(from, to, checked)
+    }
   }
 
   return (
     <Card size="sm">
       <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="from">From</Label>
@@ -62,11 +84,17 @@ export default function HistoryFilter({ defaultFrom, defaultTo }: Props) {
                 onChange={(e) => setTo(e.target.value)}
               />
             </div>
-            <Button type="submit" size="sm">
-              Filter
-            </Button>
+            <Button type="submit">Filter</Button>
+            {error && <p className="w-full text-sm text-destructive">{error}</p>}
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+            <Switch
+              size="sm"
+              checked={excludeWeekends}
+              onCheckedChange={handleExcludeChange}
+            />
+            Exclude weekends
+          </label>
         </form>
       </CardContent>
     </Card>

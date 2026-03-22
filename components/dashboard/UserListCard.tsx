@@ -14,6 +14,7 @@ type User = {
   ounces: number
   avatarUrl: string | null
   email: string
+  isOptedOut: boolean
 }
 
 type Props = {
@@ -37,24 +38,30 @@ export default function UserListCard({ users, currentUserId }: Props) {
                 key={user.id}
                 className={cn(
                   'flex items-center justify-between py-2.5',
-                  isCurrentUser && 'font-medium text-primary'
+                  isCurrentUser && !user.isOptedOut && 'font-medium text-primary',
+                  user.isOptedOut && 'opacity-50'
                 )}
               >
                 <div className="flex items-center gap-2.5">
                   <div className="size-7 shrink-0 overflow-hidden rounded-full">
                     <AvatarDisplay avatarUrl={user.avatarUrl} email={user.email} size={28} />
                   </div>
-                  <span>
+                  <span className="flex items-center gap-1.5">
                     {user.displayName}
                     {isCurrentUser && (
-                      <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                      <span className="text-xs text-muted-foreground font-normal">
                         (you)
+                      </span>
+                    )}
+                    {user.isOptedOut && (
+                      <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground font-normal">
+                        sitting out
                       </span>
                     )}
                   </span>
                 </div>
                 <span className="tabular-nums text-sm">
-                  {user.ounces > 0 ? `${user.ounces} oz` : '—'}
+                  {!user.isOptedOut && user.ounces > 0 ? `${user.ounces} oz` : '—'}
                 </span>
               </li>
             )

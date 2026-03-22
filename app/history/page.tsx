@@ -3,8 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import HistoryFilter from '@/components/history/HistoryFilter'
 import HistorySummary from '@/components/history/HistorySummary'
 import HistoryList from '@/components/history/HistoryList'
+import HistoryTabs from '@/components/history/HistoryTabs'
+import TeamHistoryList from '@/components/history/TeamHistoryList'
 
-type SearchParams = Promise<{ from?: string; to?: string }>
+type SearchParams = Promise<{ from?: string; to?: string; tab?: string; show_weekends?: string }>
 
 export default async function HistoryPage({
   searchParams,
@@ -32,6 +34,86 @@ export default async function HistoryPage({
   // Ensure from <= to; swap if reversed
   const fromDate = rawFrom <= rawTo ? rawFrom : rawTo
   const toDate = rawFrom <= rawTo ? rawTo : rawFrom
+
+  const tab = params.tab === 'team' ? 'team' : 'personal'
+  const excludeWeekends = params.show_weekends !== '1'
+
+  function isWeekend(dateStr: string): boolean {
+    const day = new Date(dateStr + 'T00:00:00').getDay()
+    return day === 0 || day === 6
+  }
+
+  if (tab === 'team') {
+    const [{ data: allLogs }, { data: allOptOuts }, { data: allUsers }] = await Promise.all([
+      supabase
+        .from('intake_logs')
+        .select('user_id, date, ounces')
+        .gte('date', fromDate)
+        .lte('date', toDate),
+      supabase
+        .from('opt_outs')
+        .select('user_id, start_date, end_date')
+        .lte('start_date', toDate)
+        .gte('end_date', fromDate),
+      supabase.from('users').select('id, daily_goal'),
+    ])
+
+    // Build opt-out range map per user
+    const optOutMap = new Map<string, { start: string; end: string }[]>()
+    for (const o of allOptOuts ?? []) {
+      const ranges = optOutMap.get(o.user_id) ?? []
+      ranges.push({ start: o.start_date, end: o.end_date })
+      optOutMap.set(o.user_id, ranges)
+    }
+
+    function isOptedOut(userId: string, date: string): boolean {
+      return (optOutMap.get(userId) ?? []).some((r) => r.start <= date && r.end >= date)
+    }
+
+    // Group logs by date
+    const logsByDate = new Map<string, { user_id: string; ounces: number }[]>()
+    for (const log of allLogs ?? []) {
+      const arr = logsByDate.get(log.date) ?? []
+      arr.push({ user_id: log.user_id, ounces: log.ounces })
+      logsByDate.set(log.date, arr)
+    }
+
+    const totalMemberCount = allUsers?.length ?? 0
+
+    const teamDays = Array.from(logsByDate.entries())
+      .map(([date, logs]) => {
+        const activeUsers = (allUsers ?? []).filter((u) => !isOptedOut(u.id, date))
+        const teamGoal = activeUsers.reduce((s, u) => s + (u.daily_goal ?? 32), 0)
+
+        const userTotals: Record<string, number> = {}
+        for (const log of logs) {
+          if (!isOptedOut(log.user_id, date)) {
+            userTotals[log.user_id] = (userTotals[log.user_id] ?? 0) + log.ounces
+          }
+        }
+        const teamTotal = Object.values(userTotals).reduce((s, n) => s + n, 0)
+
+        return {
+          date,
+          participantCount: activeUsers.length,
+          totalMemberCount,
+          teamTotal,
+          teamGoal,
+          metGoal: teamGoal > 0 && teamTotal >= teamGoal,
+        }
+      })
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .filter((d) => !excludeWeekends || !isWeekend(d.date))
+
+    return (
+      <main className="mx-auto w-full max-w-[1200px] space-y-6 px-6 py-6">
+        <h1 className="text-2xl font-bold tracking-tight">History</h1>
+        <HistoryTabs activeTab="team" />
+        <HistoryFilter defaultFrom={fromDate} defaultTo={toDate} />
+        <TeamHistoryList teamDays={teamDays} />
+      </main>
+    )
+  }
 
   const [{ data: logs }, { data: profile }] = await Promise.all([
     supabase
@@ -70,11 +152,9 @@ export default async function HistoryPage({
     }
   }
 
-  const days = Array.from(dayMap.entries()).map(([date, data]) => ({
-    date,
-    total: data.total,
-    entries: data.entries,
-  }))
+  const days = Array.from(dayMap.entries())
+    .map(([date, data]) => ({ date, total: data.total, entries: data.entries }))
+    .filter((d) => !excludeWeekends || !isWeekend(d.date))
 
   // Summary stats
   const totalOunces = days.reduce((sum, d) => sum + d.total, 0)
@@ -84,6 +164,7 @@ export default async function HistoryPage({
   return (
     <main className="mx-auto w-full max-w-[1200px] space-y-6 px-6 py-6">
       <h1 className="text-2xl font-bold tracking-tight">History</h1>
+      <HistoryTabs activeTab="personal" />
       <HistoryFilter defaultFrom={fromDate} defaultTo={toDate} />
       <HistorySummary
         totalOunces={totalOunces}
