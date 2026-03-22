@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import DisplayNameForm from '@/components/profile/DisplayNameForm'
+import { getGravatarUrl, resolveAvatarUrl } from '@/lib/gravatar'
+import ProfileIdentityCard from '@/components/profile/ProfileIdentityCard'
 import DailyGoalForm from '@/components/profile/DailyGoalForm'
 import ChangePasswordForm from '@/components/profile/ChangePasswordForm'
+import DangerZoneCard from '@/components/profile/DangerZoneCard'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -14,19 +16,29 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('display_name, daily_goal, email')
+    .select('display_name, daily_goal, email, avatar_url')
     .eq('id', user.id)
     .single()
 
+  const email = profile?.email ?? user.email ?? ''
+  const gravatarUrl = getGravatarUrl(email, 200)
+  const resolvedAvatarUrl = resolveAvatarUrl(profile?.avatar_url ?? null, email)
+
   return (
-    <main className="mx-auto w-full max-w-[1200px] space-y-6 px-6 py-6">
-      <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
-      <DisplayNameForm
-        currentName={profile?.display_name ?? null}
-        email={profile?.email ?? user.email ?? ''}
-      />
-      <DailyGoalForm currentGoal={profile?.daily_goal ?? 32} />
-      <ChangePasswordForm />
+    <main className="mx-auto w-full max-w-[1200px] px-6 py-6">
+      <h1 className="mb-4 text-2xl font-bold tracking-tight">Profile</h1>
+      <div className="grid gap-4 md:grid-cols-2">
+        <DailyGoalForm currentGoal={profile?.daily_goal ?? 32} />
+        <ProfileIdentityCard
+          currentAvatarUrl={profile?.avatar_url ?? null}
+          email={email}
+          displayName={profile?.display_name ?? null}
+          gravatarUrl={gravatarUrl}
+          resolvedAvatarUrl={resolvedAvatarUrl}
+        />
+        <ChangePasswordForm />
+        <DangerZoneCard />
+      </div>
     </main>
   )
 }

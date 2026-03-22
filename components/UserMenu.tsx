@@ -2,13 +2,16 @@
 
 import { useTransition } from 'react'
 import Link from 'next/link'
-import { Menu } from '@base-ui/react/menu'
+import { PreviewCard } from '@base-ui/react/preview-card'
+import { useTheme } from 'next-themes'
+import { User, LogOut, Sun, Moon } from 'lucide-react'
 import { signOut } from '@/app/auth/actions'
-import { User, LogOut } from 'lucide-react'
+import AvatarImage from './AvatarImage'
 
 type Props = {
   displayName: string | null
   email: string
+  resolvedAvatarUrl: string | null
 }
 
 function getInitials(displayName: string | null, email: string): string {
@@ -16,8 +19,9 @@ function getInitials(displayName: string | null, email: string): string {
   return name.charAt(0).toUpperCase()
 }
 
-export default function UserMenu({ displayName, email }: Props) {
+export default function UserMenu({ displayName, email, resolvedAvatarUrl }: Props) {
   const [isPending, startTransition] = useTransition()
+  const { theme, setTheme } = useTheme()
 
   function handleSignOut() {
     startTransition(async () => {
@@ -25,40 +29,54 @@ export default function UserMenu({ displayName, email }: Props) {
     })
   }
 
+  const name = displayName || email.split('@')[0]
   const initials = getInitials(displayName, email)
 
   return (
-    <Menu.Root>
-      <Menu.Trigger
+    <PreviewCard.Root>
+      <PreviewCard.Trigger
+        render={<Link href="/profile" />}
+        delay={100}
+        closeDelay={200}
         className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        aria-label="User menu"
+        aria-label="User profile"
       >
-        {initials}
-      </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner sideOffset={8} align="end">
-          <Menu.Popup className="z-50 min-w-[160px] rounded-lg border border-border bg-popover p-1 shadow-md">
-            <div className="px-3 py-2 text-xs text-muted-foreground">
-              {displayName || email.split('@')[0]}
+        <AvatarImage src={resolvedAvatarUrl} fallback={initials} size={32} />
+      </PreviewCard.Trigger>
+      <PreviewCard.Portal>
+        <PreviewCard.Positioner side="bottom" align="end" sideOffset={12} className="z-50">
+          <PreviewCard.Popup className="min-w-[200px] rounded-xl border border-border bg-popover p-1 shadow-lg shadow-black/10">
+            <div className="px-3 py-2 text-xs font-medium text-muted-foreground">{name}</div>
+            <div className="my-1 h-px bg-border" />
+            <div className="flex items-center justify-between px-3 py-2">
+              <span className="text-sm text-foreground">Theme</span>
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="relative flex size-7 items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted"
+                aria-label="Toggle theme"
+              >
+                <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              </button>
             </div>
-            <Menu.LinkItem
-              render={<Link href="/profile" />}
-              className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm outline-none data-[highlighted]:bg-muted"
+            <Link
+              href="/profile"
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground outline-none transition-colors hover:bg-muted"
             >
               <User className="size-4" />
               Profile
-            </Menu.LinkItem>
-            <Menu.Item
-              className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm outline-none data-[highlighted]:bg-muted"
+            </Link>
+            <button
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground outline-none transition-colors hover:bg-muted disabled:opacity-50"
               disabled={isPending}
               onClick={handleSignOut}
             >
               <LogOut className="size-4" />
               {isPending ? 'Logging out…' : 'Log out'}
-            </Menu.Item>
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.Root>
+            </button>
+          </PreviewCard.Popup>
+        </PreviewCard.Positioner>
+      </PreviewCard.Portal>
+    </PreviewCard.Root>
   )
 }

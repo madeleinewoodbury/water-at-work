@@ -5,6 +5,75 @@ import { createClient } from '@/lib/supabase/server'
 
 type ActionState = { error?: string; success?: string } | null
 
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const MAX_SIZE = 2 * 1024 * 1024 // 2MB
+
+export async function updateAvatar(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  const avatarType = formData.get('avatar_type') as string
+
+  if (avatarType === 'gravatar') {
+    const { error } = await supabase
+      .from('users')
+      .update({ avatar_url: 'gravatar' })
+      .eq('id', user.id)
+    if (error) return { error: error.message }
+    revalidatePath('/', 'layout')
+    return { success: 'Avatar updated' }
+  }
+
+  if (avatarType === 'preset') {
+    const value = formData.get('avatar_url') as string
+    if (!value?.startsWith('preset:')) return { error: 'Invalid preset' }
+    const { error } = await supabase
+      .from('users')
+      .update({ avatar_url: value })
+      .eq('id', user.id)
+    if (error) return { error: error.message }
+    revalidatePath('/', 'layout')
+    return { success: 'Avatar updated' }
+  }
+
+  if (avatarType === 'upload') {
+    const file = formData.get('file') as File | null
+    if (!file || file.size === 0) return { error: 'No file selected' }
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return { error: 'File must be a JPEG, PNG, GIF, or WebP image' }
+    }
+    if (file.size > MAX_SIZE) return { error: 'File must be 2 MB or smaller' }
+
+    const ext = file.type.split('/')[1].replace('jpeg', 'jpg')
+    const path = `${user.id}/avatar.${ext}`
+    const buffer = Buffer.from(await file.arrayBuffer())
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, buffer, { upsert: true, contentType: file.type })
+    if (uploadError) return { error: uploadError.message }
+
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+    const { error: dbError } = await supabase
+      .from('users')
+      .update({ avatar_url: urlData.publicUrl })
+      .eq('id', user.id)
+    if (dbError) return { error: dbError.message }
+
+    revalidatePath('/', 'layout')
+    return { success: 'Avatar updated' }
+  }
+
+  return { error: 'Invalid request' }
+}
+
 export async function updateDisplayName(
   _prevState: ActionState,
   formData: FormData

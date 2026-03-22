@@ -93,3 +93,33 @@ CREATE POLICY "Users can delete own intake"
   ON public.intake_logs FOR DELETE
   TO authenticated
   USING (auth.uid() = user_id);
+
+
+-- ============================================================
+-- Migration: Avatar support
+-- Run in the Supabase SQL Editor after initial setup.
+-- ============================================================
+
+-- 1. Add avatar_url column to users table
+--    Values: NULL (initials), 'gravatar', 'preset:{name}', or a Supabase Storage public URL
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+-- 2. Create the 'avatars' storage bucket (do this in the Supabase Dashboard → Storage)
+--    Set the bucket to Public so avatar images are readable without auth.
+
+-- 3. RLS policies for the 'avatars' bucket
+CREATE POLICY "Users can upload own avatar"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Users can update own avatar"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Users can delete own avatar"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Public avatar read"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'avatars');

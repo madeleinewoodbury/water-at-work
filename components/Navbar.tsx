@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ThemeToggle } from './ThemeToggle'
 import UserMenu from './UserMenu'
+import { resolveAvatarUrl } from '@/lib/gravatar'
 
 const navLinkClass =
   'inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted'
@@ -17,15 +18,17 @@ export default async function Navbar() {
 
   let displayName: string | null = null
   let email = ''
+  let resolvedAvatarUrl: string | null = null
 
   if (user) {
     const { data: profile } = await supabase
       .from('users')
-      .select('display_name, email')
+      .select('display_name, email, avatar_url')
       .eq('id', user.id)
       .single()
     displayName = profile?.display_name ?? null
     email = profile?.email ?? user.email ?? ''
+    resolvedAvatarUrl = resolveAvatarUrl(profile?.avatar_url ?? null, email)
   }
 
   return (
@@ -44,8 +47,11 @@ export default async function Navbar() {
               <Link href="/history" className={navLinkClass}>
                 History
               </Link>
-              <ThemeToggle />
-              <UserMenu displayName={displayName} email={email} />
+              <UserMenu
+                displayName={displayName}
+                email={email}
+                resolvedAvatarUrl={resolvedAvatarUrl}
+              />
             </>
           ) : (
             <>
