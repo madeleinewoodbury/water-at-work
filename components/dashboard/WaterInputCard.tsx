@@ -1,7 +1,8 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import { logIntake } from '@/app/dashboard/actions'
+import { Pencil, Trash2 } from 'lucide-react'
+import { logIntake, updateIntake, deleteIntake } from '@/app/dashboard/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -14,13 +15,23 @@ import {
 
 const PRESETS = [8, 12, 16, 24]
 
-type Props = { personalTotal: number; dailyGoal: number }
+type Entry = { id: string; ounces: number; created_at: string }
 
-export default function WaterInputCard({ personalTotal, dailyGoal }: Props) {
+type Props = { personalTotal: number; dailyGoal: number; entries: Entry[] }
+
+function formatTime(ts: string) {
+  return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+export default function WaterInputCard({ personalTotal, dailyGoal, entries }: Props) {
   const [ounces, setOunces] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const formRef = useRef<HTMLFormElement>(null)
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const [editError, setEditError] = useState<string | null>(null)
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -37,6 +48,31 @@ export default function WaterInputCard({ personalTotal, dailyGoal }: Props) {
     })
   }
 
+  function handleUpdate(entryId: string) {
+    const fd = new FormData()
+    fd.set('id', entryId)
+    fd.set('ounces', editValue)
+    startTransition(async () => {
+      const result = await updateIntake(null, fd)
+      if (result?.error) {
+        setEditError(result.error)
+      } else {
+        setEditError(null)
+        setEditingId(null)
+        setEditValue('')
+      }
+    })
+  }
+
+  function handleDelete(entryId: string) {
+    const fd = new FormData()
+    fd.set('id', entryId)
+    startTransition(async () => {
+      const result = await deleteIntake(null, fd)
+      if (result?.error) setEditError(result.error)
+    })
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -47,7 +83,7 @@ export default function WaterInputCard({ personalTotal, dailyGoal }: Props) {
           <span className="text-muted-foreground"> / {dailyGoal} oz goal</span>
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-3">
         <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((oz) => (
@@ -80,6 +116,80 @@ export default function WaterInputCard({ personalTotal, dailyGoal }: Props) {
 
           {error && <p className="text-sm text-destructive">{error}</p>}
         </form>
+
+        {entries.length > 0 && (
+          <div className="border-t border-border pt-3">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Today&apos;s entries</p>
+            <ul className="space-y-1">
+              {entries.map((entry) =>
+                editingId === entry.id ? (
+                  <li key={entry.id} className="flex items-center gap-2 py-1">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      className="h-7 w-20 text-sm"
+                    />
+                    <span className="text-xs text-muted-foreground">oz</span>
+                    <Button
+                      size="sm"
+                      disabled={isPending || !editValue}
+                      onClick={() => handleUpdate(entry.id)}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={isPending}
+                      onClick={() => {
+                        setEditingId(null)
+                        setEditValue('')
+                        setEditError(null)
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </li>
+                ) : (
+                  <li
+                    key={entry.id}
+                    className="flex items-center justify-between py-1 text-sm text-muted-foreground"
+                  >
+                    <span>{entry.ounces} oz</span>
+                    <div className="flex items-center gap-1">
+                      <span>{formatTime(entry.created_at)}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={isPending}
+                        onClick={() => {
+                          setEditingId(entry.id)
+                          setEditValue(String(entry.ounces))
+                          setEditError(null)
+                        }}
+                      >
+                        <Pencil className="size-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive/70 hover:text-destructive"
+                        disabled={isPending}
+                        onClick={() => handleDelete(entry.id)}
+                      >
+                        <Trash2 className="size-3" />
+                      </Button>
+                    </div>
+                  </li>
+                )
+              )}
+            </ul>
+            {editError && <p className="mt-1 text-xs text-destructive">{editError}</p>}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

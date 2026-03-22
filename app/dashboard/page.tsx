@@ -15,12 +15,18 @@ export default async function DashboardPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  const [{ data: intakeLogs }, { data: teamUsers }] = await Promise.all([
+  const [{ data: intakeLogs }, { data: teamUsers }, { data: myEntries }] = await Promise.all([
     supabase
       .from('intake_logs')
       .select('user_id, ounces')
       .eq('date', today),
     supabase.from('users').select('id, email, display_name, daily_goal'),
+    supabase
+      .from('intake_logs')
+      .select('id, ounces, created_at')
+      .eq('user_id', user.id)
+      .eq('date', today)
+      .order('created_at', { ascending: true }),
   ])
 
   const userTotals: Record<string, number> = {}
@@ -44,7 +50,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto grid w-full max-w-[1200px] gap-4 px-6 py-6 md:grid-cols-2">
-      <WaterInputCard personalTotal={personalTotal} dailyGoal={personalGoal} />
+      <WaterInputCard personalTotal={personalTotal} dailyGoal={personalGoal} entries={myEntries ?? []} />
       <TeamProgressCard teamTotal={teamTotal} memberCount={teamUsers?.length ?? 0} teamGoal={teamGoal} />
       <UserListCard users={userList} currentUserId={user.id} />
     </main>
