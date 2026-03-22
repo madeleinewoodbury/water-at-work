@@ -18,14 +18,8 @@ export default async function UpdatePasswordPage({
   const { error } = await searchParams
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <span className="text-2xl font-bold tracking-tight">
-            <span className="text-primary">~</span> WaW
-          </span>
-        </div>
-
+    <main className="flex flex-1 flex-col items-center justify-center px-6 pb-14">
+      <div className="w-full max-w-md">
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Set new password</CardTitle>

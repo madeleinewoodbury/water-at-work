@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function LandingPage() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
+    <main className="flex flex-1 flex-col items-center justify-center px-6 pb-14 text-center">
       {/* eyebrow */}
       <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
         💧 Your hydration companion
@@ -19,7 +19,7 @@ export default function LandingPage() {
 
       {/* subtext */}
       <p className="mt-6 max-w-md text-lg text-muted-foreground">
-        WaW helps you hit your daily water goal and build the kind of habits
+        WaW  helps you hit your daily water goal and build the kind of habits
         that keep you sharp — one glass at a time.
       </p>
 
@@ -29,7 +29,7 @@ export default function LandingPage() {
           href="/sign-up"
           className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/85"
         >
-          Get started free
+          Get started
         </Link>
         <Link
           href="/sign-in"

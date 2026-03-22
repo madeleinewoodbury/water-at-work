@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ThemeToggle } from './ThemeToggle'
 import UserMenu from './UserMenu'
+import BrandLogo from './BrandLogo'
 
 const navLinkClass =
   'inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted'
@@ -33,8 +34,11 @@ export default async function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
       <nav className="mx-auto flex h-14 w-full max-w-[1200px] items-center justify-between px-6">
-        <Link href="/" className="text-base font-bold tracking-tight text-foreground">
-          <span className="text-primary">~</span> WaW
+        <Link
+          href={user ? '/dashboard' : '/'}
+          className="flex items-center gap-1.5 text-base font-bold tracking-tight text-foreground"
+        >
+          <BrandLogo variant="nav" />
         </Link>
 
         <div className="flex items-center gap-1">
