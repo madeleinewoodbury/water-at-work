@@ -1,52 +1,44 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
-import { updateAvatar } from '@/app/profile/actions'
-import { updateDisplayName } from '@/app/profile/actions'
+import { useState, useTransition } from 'react'
+import {
+  Droplets, Waves, Fish, Shell, Sun, Leaf, Mountain, CloudRain,
+  Snowflake, Flame, Wind, Star, Heart, Globe, Flower2, Moon,
+  type LucideIcon,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { updateAvatar, updateDisplayName } from '@/app/profile/actions'
+import { ICON_PRESETS } from '@/lib/avatar-presets'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import AvatarImage from '@/components/AvatarImage'
+import AvatarDisplay from '@/components/AvatarDisplay'
+import AvatarUploadTab from '@/components/profile/AvatarUploadTab'
 import { X } from 'lucide-react'
 
 type Tab = 'gravatar' | 'presets' | 'upload'
 
-const PRESETS = [
-  { id: 'wave', label: 'Wave' },
-  { id: 'droplet', label: 'Droplet' },
-  { id: 'fish', label: 'Fish' },
-  { id: 'coral', label: 'Coral' },
-  { id: 'sun', label: 'Sun' },
-  { id: 'mountain', label: 'Mountain' },
-  { id: 'shell', label: 'Shell' },
-  { id: 'leaf', label: 'Leaf' },
-]
+const ICON_MAP: Record<string, LucideIcon> = {
+  Droplets, Waves, Fish, Shell, Sun, Leaf, Mountain, CloudRain,
+  Snowflake, Flame, Wind, Star, Heart, Globe, Flower2, Moon,
+}
 
 type Props = {
   currentAvatarUrl: string | null
   email: string
   displayName: string | null
-  gravatarUrl: string
-  resolvedAvatarUrl: string | null
-}
-
-function getInitials(displayName: string | null, email: string): string {
-  const name = displayName || email.split('@')[0]
-  return name.charAt(0).toUpperCase()
 }
 
 export default function ProfileIdentityCard({
   currentAvatarUrl,
   email,
   displayName,
-  gravatarUrl,
-  resolvedAvatarUrl,
 }: Props) {
   const [isChangingPhoto, setIsChangingPhoto] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('gravatar')
   const [selectedPreset, setSelectedPreset] = useState<string | null>(
-    currentAvatarUrl?.startsWith('preset:') ? currentAvatarUrl.slice(7) : null
+    currentAvatarUrl?.startsWith('icon:') ? currentAvatarUrl.slice(5) : null
   )
   const [fileError, setFileError] = useState<string | null>(null)
   const [avatarMessage, setAvatarMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
@@ -55,9 +47,6 @@ export default function ProfileIdentityCard({
   const [nameMessage, setNameMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
 
   const [isPending, startTransition] = useTransition()
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  const initials = getInitials(displayName, email)
 
   // --- Avatar handlers ---
 
@@ -78,7 +67,7 @@ export default function ProfileIdentityCard({
     if (!selectedPreset) return
     const formData = new FormData()
     formData.set('avatar_type', 'preset')
-    formData.set('avatar_url', `preset:${selectedPreset}`)
+    formData.set('avatar_url', `icon:${selectedPreset}`)
     startTransition(async () => {
       const result = await updateAvatar(null, formData)
       setAvatarMessage(result?.error
@@ -89,13 +78,8 @@ export default function ProfileIdentityCard({
     })
   }
 
-  function handleUpload() {
+  function handleUpload(file: File) {
     setFileError(null)
-    const file = fileRef.current?.files?.[0]
-    if (!file) { setFileError('Please select a file'); return }
-    if (file.size > 2 * 1024 * 1024) { setFileError('File must be 2 MB or smaller'); return }
-    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-    if (!allowed.includes(file.type)) { setFileError('File must be a JPEG, PNG, GIF, or WebP image'); return }
     const formData = new FormData()
     formData.set('avatar_type', 'upload')
     formData.set('file', file)
@@ -139,8 +123,8 @@ export default function ProfileIdentityCard({
       <CardContent className="space-y-5">
         {/* Avatar row */}
         <div className="flex items-center gap-4">
-          <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary text-xl font-medium text-primary-foreground">
-            <AvatarImage src={resolvedAvatarUrl} fallback={initials} size={64} />
+          <div className="size-16 shrink-0 overflow-hidden rounded-full">
+            <AvatarDisplay avatarUrl={currentAvatarUrl} email={email} size={64} />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium">{displayName || email.split('@')[0]}</p>
@@ -185,8 +169,8 @@ export default function ProfileIdentityCard({
             {activeTab === 'gravatar' && (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-base font-medium text-primary-foreground">
-                    <AvatarImage src={gravatarUrl} fallback={initials} size={48} />
+                  <div className="size-12 shrink-0 overflow-hidden rounded-full">
+                    <AvatarDisplay avatarUrl="gravatar" email={email} size={48} />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Uses the image from your{' '}
@@ -206,21 +190,25 @@ export default function ProfileIdentityCard({
             {activeTab === 'presets' && (
               <div className="space-y-3">
                 <div className="grid grid-cols-8 gap-2">
-                  {PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      onClick={() => setSelectedPreset(preset.id)}
-                      title={preset.label}
-                      className={`flex size-10 items-center justify-center overflow-hidden rounded-full ring-offset-background transition-all ${
-                        selectedPreset === preset.id
-                          ? 'ring-2 ring-primary ring-offset-2'
-                          : 'opacity-75 hover:opacity-100'
-                      }`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={`/avatars/${preset.id}.svg`} alt={preset.label} className="size-full" />
-                    </button>
-                  ))}
+                  {ICON_PRESETS.map((preset) => {
+                    const Icon = ICON_MAP[preset.iconName]
+                    return (
+                      <button
+                        key={preset.id}
+                        onClick={() => setSelectedPreset(preset.id)}
+                        title={preset.id.replace(/-/g, ' ')}
+                        className={cn(
+                          'flex size-10 items-center justify-center rounded-full ring-offset-background transition-all',
+                          preset.bg,
+                          selectedPreset === preset.id
+                            ? 'ring-2 ring-primary ring-offset-2'
+                            : 'opacity-75 hover:opacity-100'
+                        )}
+                      >
+                        {Icon && <Icon className={cn('size-5', preset.fg)} />}
+                      </button>
+                    )
+                  })}
                 </div>
                 <Button size="sm" onClick={handlePreset} disabled={isPending || !selectedPreset}>
                   {isPending ? 'Saving…' : 'Save'}
@@ -230,22 +218,11 @@ export default function ProfileIdentityCard({
 
             {/* Upload tab */}
             {activeTab === 'upload' && (
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-background file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-muted"
-                    onChange={() => setFileError(null)}
-                  />
-                  <p className="text-xs text-muted-foreground">JPEG, PNG, GIF, or WebP · max 2 MB</p>
-                  {fileError && <p className="text-sm text-destructive">{fileError}</p>}
-                </div>
-                <Button size="sm" onClick={handleUpload} disabled={isPending}>
-                  {isPending ? 'Uploading…' : 'Upload'}
-                </Button>
-              </div>
+              <AvatarUploadTab
+                isPending={isPending}
+                onUpload={handleUpload}
+                error={fileError}
+              />
             )}
 
             {avatarMessage && (

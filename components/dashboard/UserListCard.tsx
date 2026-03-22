@@ -6,11 +6,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import AvatarDisplay from '@/components/AvatarDisplay'
 
 type User = {
   id: string
   displayName: string
   ounces: number
+  avatarUrl: string | null
+  email: string
 }
 
 type Props = {
@@ -37,15 +40,19 @@ export default function UserListCard({ users, currentUserId }: Props) {
                   isCurrentUser && 'font-medium text-primary'
                 )}
               >
-                <span>
-                  {user.displayName}
-                  {isCurrentUser && (
-                    <span className="ml-1.5 text-xs text-muted-foreground font-normal">
-                      (you)
-                    </span>
-                  )}
-                </span>
-                {/* Placeholder slot for future WaterBottleSVG */}
+                <div className="flex items-center gap-2.5">
+                  <div className="size-7 shrink-0 overflow-hidden rounded-full">
+                    <AvatarDisplay avatarUrl={user.avatarUrl} email={user.email} size={28} />
+                  </div>
+                  <span>
+                    {user.displayName}
+                    {isCurrentUser && (
+                      <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                        (you)
+                      </span>
+                    )}
+                  </span>
+                </div>
                 <span className="tabular-nums text-sm">
                   {user.ounces > 0 ? `${user.ounces} oz` : '—'}
                 </span>

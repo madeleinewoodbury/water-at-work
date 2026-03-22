@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ThemeToggle } from './ThemeToggle'
 import UserMenu from './UserMenu'
-import { resolveAvatarUrl } from '@/lib/gravatar'
 
 const navLinkClass =
   'inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted'
@@ -18,7 +17,7 @@ export default async function Navbar() {
 
   let displayName: string | null = null
   let email = ''
-  let resolvedAvatarUrl: string | null = null
+  let avatarUrl: string | null = null
 
   if (user) {
     const { data: profile } = await supabase
@@ -28,7 +27,7 @@ export default async function Navbar() {
       .single()
     displayName = profile?.display_name ?? null
     email = profile?.email ?? user.email ?? ''
-    resolvedAvatarUrl = resolveAvatarUrl(profile?.avatar_url ?? null, email)
+    avatarUrl = profile?.avatar_url ?? null
   }
 
   return (
@@ -50,7 +49,7 @@ export default async function Navbar() {
               <UserMenu
                 displayName={displayName}
                 email={email}
-                resolvedAvatarUrl={resolvedAvatarUrl}
+                avatarUrl={avatarUrl}
               />
             </>
           ) : (

@@ -9,5 +9,6 @@ export function resolveAvatarUrl(avatarUrl: string | null, email: string): strin
   if (!avatarUrl) return null
   if (avatarUrl === 'gravatar') return getGravatarUrl(email)
   if (avatarUrl.startsWith('preset:')) return `/avatars/${avatarUrl.slice(7)}.svg`
+  if (avatarUrl.startsWith('icon:')) return null
   return avatarUrl
 }

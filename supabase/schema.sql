@@ -1,6 +1,8 @@
 -- ============================================================
 -- Water at Work (WaW) — Supabase Schema
 -- Run top to bottom in the Supabase SQL Editor on a fresh project.
+-- Before running: create a public storage bucket named exactly "avatars"
+--   in the Supabase Dashboard → Storage (bucket name is case-sensitive).
 -- ============================================================
 
 
@@ -15,6 +17,7 @@ CREATE TABLE public.users (
   email        TEXT        NOT NULL,
   display_name TEXT,
   daily_goal   INTEGER     NOT NULL DEFAULT 32,
+  avatar_url   TEXT,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -96,18 +99,12 @@ CREATE POLICY "Users can delete own intake"
 
 
 -- ============================================================
--- Migration: Avatar support
--- Run in the Supabase SQL Editor after initial setup.
+-- 3. Storage RLS policies for the "avatars" bucket
+--    The bucket must already exist (created via the Dashboard).
+--    avatar_url values: NULL (initials), 'gravatar', 'icon:{preset-id}',
+--    or a Supabase Storage public URL for uploaded images.
 -- ============================================================
 
--- 1. Add avatar_url column to users table
---    Values: NULL (initials), 'gravatar', 'preset:{name}', or a Supabase Storage public URL
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
-
--- 2. Create the 'avatars' storage bucket (do this in the Supabase Dashboard → Storage)
---    Set the bucket to Public so avatar images are readable without auth.
-
--- 3. RLS policies for the 'avatars' bucket
 CREATE POLICY "Users can upload own avatar"
   ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);

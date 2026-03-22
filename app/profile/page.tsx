@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getGravatarUrl, resolveAvatarUrl } from '@/lib/gravatar'
 import ProfileIdentityCard from '@/components/profile/ProfileIdentityCard'
 import DailyGoalForm from '@/components/profile/DailyGoalForm'
 import ChangePasswordForm from '@/components/profile/ChangePasswordForm'
@@ -21,8 +20,6 @@ export default async function ProfilePage() {
     .single()
 
   const email = profile?.email ?? user.email ?? ''
-  const gravatarUrl = getGravatarUrl(email, 200)
-  const resolvedAvatarUrl = resolveAvatarUrl(profile?.avatar_url ?? null, email)
 
   return (
     <main className="mx-auto w-full max-w-[1200px] px-6 py-6">
@@ -33,8 +30,6 @@ export default async function ProfilePage() {
           currentAvatarUrl={profile?.avatar_url ?? null}
           email={email}
           displayName={profile?.display_name ?? null}
-          gravatarUrl={gravatarUrl}
-          resolvedAvatarUrl={resolvedAvatarUrl}
         />
         <ChangePasswordForm />
         <DangerZoneCard />

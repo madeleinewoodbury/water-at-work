@@ -1,7 +1,9 @@
 'use server'
 
+import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 type ActionState = { error?: string; success?: string } | null
 
@@ -33,7 +35,7 @@ export async function updateAvatar(
 
   if (avatarType === 'preset') {
     const value = formData.get('avatar_url') as string
-    if (!value?.startsWith('preset:')) return { error: 'Invalid preset' }
+    if (!value?.startsWith('preset:') && !value?.startsWith('icon:')) return { error: 'Invalid preset' }
     const { error } = await supabase
       .from('users')
       .update({ avatar_url: value })
@@ -171,4 +173,24 @@ export async function changePassword(
   if (updateError) return { error: updateError.message }
 
   return { success: 'Password updated successfully' }
+}
+
+export async function deleteAccount(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const confirmation = formData.get('confirmation') as string
+  if (confirmation !== 'DELETE') return { error: 'Type DELETE to confirm' }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id)
+  if (error) return { error: error.message }
+
+  redirect('/sign-in')
 }

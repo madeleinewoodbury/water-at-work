@@ -20,7 +20,7 @@ export default async function DashboardPage() {
       .from('intake_logs')
       .select('user_id, ounces')
       .eq('date', today),
-    supabase.from('users').select('id, email, display_name, daily_goal'),
+    supabase.from('users').select('id, email, display_name, daily_goal, avatar_url'),
     supabase
       .from('intake_logs')
       .select('id, ounces, created_at')
@@ -45,6 +45,8 @@ export default async function DashboardPage() {
       id: u.id,
       displayName: getDisplayName(u),
       ounces: userTotals[u.id] ?? 0,
+      avatarUrl: u.avatar_url ?? null,
+      email: u.email,
     }))
     .sort((a, b) => b.ounces - a.ounces)
 

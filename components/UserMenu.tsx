@@ -6,20 +6,15 @@ import { PreviewCard } from '@base-ui/react/preview-card'
 import { useTheme } from 'next-themes'
 import { User, LogOut, Sun, Moon } from 'lucide-react'
 import { signOut } from '@/app/auth/actions'
-import AvatarImage from './AvatarImage'
+import AvatarDisplay from './AvatarDisplay'
 
 type Props = {
   displayName: string | null
   email: string
-  resolvedAvatarUrl: string | null
+  avatarUrl: string | null
 }
 
-function getInitials(displayName: string | null, email: string): string {
-  const name = displayName || email.split('@')[0]
-  return name.charAt(0).toUpperCase()
-}
-
-export default function UserMenu({ displayName, email, resolvedAvatarUrl }: Props) {
+export default function UserMenu({ displayName, email, avatarUrl }: Props) {
   const [isPending, startTransition] = useTransition()
   const { theme, setTheme } = useTheme()
 
@@ -30,7 +25,6 @@ export default function UserMenu({ displayName, email, resolvedAvatarUrl }: Prop
   }
 
   const name = displayName || email.split('@')[0]
-  const initials = getInitials(displayName, email)
 
   return (
     <PreviewCard.Root>
@@ -38,10 +32,10 @@ export default function UserMenu({ displayName, email, resolvedAvatarUrl }: Prop
         render={<Link href="/profile" />}
         delay={100}
         closeDelay={200}
-        className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="size-8 overflow-hidden rounded-full transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         aria-label="User profile"
       >
-        <AvatarImage src={resolvedAvatarUrl} fallback={initials} size={32} />
+        <AvatarDisplay avatarUrl={avatarUrl} email={email} size={32} />
       </PreviewCard.Trigger>
       <PreviewCard.Portal>
         <PreviewCard.Positioner side="bottom" align="end" sideOffset={12} className="z-50">
