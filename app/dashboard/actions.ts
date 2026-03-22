@@ -1,6 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
 type ActionState = { error: string } | null
@@ -32,7 +31,6 @@ export async function logIntake(
 
   if (error) return { error: error.message }
 
-  revalidatePath('/dashboard')
   return null
 }
 
@@ -64,7 +62,6 @@ export async function updateIntake(
 
   if (error) return { error: error.message }
 
-  revalidatePath('/dashboard')
   return null
 }
 
@@ -90,7 +87,6 @@ export async function deleteIntake(
 
   if (error) return { error: error.message }
 
-  revalidatePath('/dashboard')
   return null
 }
 
@@ -112,7 +108,6 @@ export async function optOutToday(): Promise<ActionState> {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/dashboard')
   return null
 }
 
@@ -135,6 +130,5 @@ export async function optBackIn(_prevState: ActionState, formData: FormData): Pr
 
   if (error) return { error: error.message }
 
-  revalidatePath('/dashboard')
   return null
 }

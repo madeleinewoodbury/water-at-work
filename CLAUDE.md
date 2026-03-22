@@ -37,7 +37,9 @@ Before adding routes, data fetching, caching, or mutations, read the relevant gu
 
 **Auth flow** — after email confirmation, `app/auth/callback/route.ts` redirects new users to `/onboarding` (not `/dashboard`). The onboarding page collects `display_name` and `daily_goal`, then redirects to `/dashboard`. If `display_name` is already set, `/onboarding` skips straight to `/dashboard`. Existing users signing in go directly to `/dashboard` via `signIn()` in `app/auth/actions.ts`.
 
-**Server actions** live alongside their route: `app/[route]/actions.ts`, marked `'use server'`. After a mutation call `revalidatePath()` to refresh server component data.
+**Server actions** live alongside their route: `app/[route]/actions.ts`, marked `'use server'`. Dashboard actions do **not** call `revalidatePath()` — real-time subscriptions handle UI updates instead.
+
+**Real-time** — The dashboard uses Supabase real-time subscriptions (`postgres_changes`) on `intake_logs` and `opt_outs`. The server component (`app/dashboard/page.tsx`) fetches initial data and passes it to `DashboardRealtime` (client wrapper), which manages state via `useState`/`useMemo` and subscribes to changes. Both tables have `REPLICA IDENTITY FULL` and are added to the `supabase_realtime` publication (see `supabase/migrations/003_enable_realtime.sql`). A `WowOverlay` component shows a random Owen Wilson GIF (from `public/wow/`) on every new water log.
 
 **shadcn/ui** uses the Base Nova preset (`@base-ui/react` primitives). `button.tsx` is `"use client"` — do not import `buttonVariants` in server components; use plain Tailwind classes instead.
 
