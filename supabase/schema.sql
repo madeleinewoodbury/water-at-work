@@ -3,7 +3,26 @@
 -- Run top to bottom in the Supabase SQL Editor on a fresh project.
 -- Before running: create a public storage bucket named exactly "avatars"
 --   in the Supabase Dashboard → Storage (bucket name is case-sensitive).
+-- Safe to re-run — section 0 tears everything down first.
 -- ============================================================
+
+
+-- ============================================================
+-- 0. Teardown (safe to re-run on an existing database)
+-- ============================================================
+
+DROP TABLE IF EXISTS public.opt_outs   CASCADE;
+DROP TABLE IF EXISTS public.intake_logs CASCADE;
+DROP TABLE IF EXISTS public.users       CASCADE;
+
+DROP TRIGGER  IF EXISTS on_auth_user_created ON auth.users;
+DROP FUNCTION IF EXISTS public.handle_new_user();
+
+DROP POLICY IF EXISTS "Users can upload own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Public avatar read"           ON storage.objects;
+
 
 
 -- ============================================================
@@ -159,3 +178,17 @@ CREATE POLICY "Users can delete own opt_out"
   ON public.opt_outs FOR DELETE
   TO authenticated
   USING (auth.uid() = user_id);
+
+
+-- ============================================================
+-- 5. Real-time
+--    Enable postgres_changes subscriptions on tables used by
+--    the live dashboard. REPLICA IDENTITY FULL ensures DELETE
+--    events include the full row (needed to identify user_id).
+-- ============================================================
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.intake_logs;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.opt_outs;
+
+ALTER TABLE public.intake_logs REPLICA IDENTITY FULL;
+ALTER TABLE public.opt_outs REPLICA IDENTITY FULL;
