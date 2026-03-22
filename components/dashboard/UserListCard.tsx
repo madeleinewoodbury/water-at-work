@@ -24,9 +24,9 @@ type Props = {
 }
 
 function getStatusIndicator(actualPct: number, timeTarget: number) {
-  if (actualPct >= 1) return { emoji: '🏆', label: 'crushed it!', colorClass: 'text-green-500 dark:text-green-400' }
-  if (actualPct >= timeTarget) return { emoji: '💧', label: 'on track', colorClass: 'text-sky-500' }
-  if (actualPct >= timeTarget * 0.5) return { emoji: '🐢', label: 'behind', colorClass: 'text-amber-500' }
+  if (actualPct >= 1) return { emoji: '🏆', label: 'crushed it!', colorClass: 'text-green-700 dark:text-green-400' }
+  if (actualPct >= timeTarget) return { emoji: '💧', label: 'on track', colorClass: 'text-sky-700 dark:text-sky-400' }
+  if (actualPct >= timeTarget * 0.5) return { emoji: '🐢', label: 'behind', colorClass: 'text-amber-700 dark:text-amber-400' }
   return { emoji: '💤', label: 'slacking', colorClass: 'text-muted-foreground' }
 }
 
