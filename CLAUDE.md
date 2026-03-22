@@ -35,8 +35,12 @@ Before adding routes, data fetching, caching, or mutations, read the relevant gu
 
 **Middleware** lives in `proxy.ts` (not `middleware.ts`) — Next.js 16 renamed it.
 
+**Auth flow** — after email confirmation, `app/auth/callback/route.ts` redirects new users to `/onboarding` (not `/dashboard`). The onboarding page collects `display_name` and `daily_goal`, then redirects to `/dashboard`. If `display_name` is already set, `/onboarding` skips straight to `/dashboard`. Existing users signing in go directly to `/dashboard` via `signIn()` in `app/auth/actions.ts`.
+
 **Server actions** live alongside their route: `app/[route]/actions.ts`, marked `'use server'`. After a mutation call `revalidatePath()` to refresh server component data.
 
 **shadcn/ui** uses the Base Nova preset (`@base-ui/react` primitives). `button.tsx` is `"use client"` — do not import `buttonVariants` in server components; use plain Tailwind classes instead.
 
 **ESLint** enforces `react-hooks/set-state-in-effect` — calling `setState` synchronously inside `useEffect` is an error. Use `useTransition` for async state updates tied to server actions.
+
+**React 19 type changes** — `React.FormEvent` is deprecated. Use `React.SyntheticEvent<HTMLFormElement>` for form submit handlers instead.

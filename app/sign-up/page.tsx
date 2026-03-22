@@ -61,6 +61,19 @@ export default async function SignUpPage({
                 />
               </div>
 
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="confirm_password">Confirm password</Label>
+                <Input
+                  id="confirm_password"
+                  name="confirm_password"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  minLength={6}
+                  placeholder="••••••••"
+                />
+              </div>
+
               <Button type="submit" className="mt-1 w-full">
                 Create account
               </Button>

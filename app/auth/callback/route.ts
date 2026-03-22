@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         new URL(`/sign-in?error=${encodeURIComponent(error.message)}`, origin)
       )
     }
-    const next = searchParams.get('next') ?? '/dashboard'
+    const next = searchParams.get('next') ?? '/onboarding'
     const response = NextResponse.redirect(new URL(next, origin))
     if (next === '/auth/update-password') {
       response.cookies.set('pw_recovery', '1', { httpOnly: true, maxAge: 600, path: '/' })
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       response.cookies.set('pw_recovery', '1', { httpOnly: true, maxAge: 600, path: '/' })
       return response
     }
-    return NextResponse.redirect(new URL('/dashboard', origin))
+    return NextResponse.redirect(new URL('/onboarding', origin))
   }
 
   return NextResponse.redirect(

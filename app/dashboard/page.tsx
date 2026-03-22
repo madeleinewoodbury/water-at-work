@@ -53,6 +53,7 @@ export default async function DashboardPage() {
       id: u.id,
       displayName: getDisplayName(u),
       ounces: userTotals[u.id] ?? 0,
+      dailyGoal: u.daily_goal ?? 32,
       avatarUrl: u.avatar_url ?? null,
       email: u.email,
       isOptedOut: optedOutUserIds.has(u.id),
