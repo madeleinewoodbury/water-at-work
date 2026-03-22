@@ -2,22 +2,20 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { headers, cookies } from 'next/headers'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 
-async function getSiteOrigin() {
-  const headersList = await headers()
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    (process.env.NODE_ENV === 'development'
-      ? 'http://localhost:3000'
-      : `https://${headersList.get('host')}`)
+function getSiteOrigin(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL
+  if (process.env.NODE_ENV === 'development') return 'http://localhost:3000'
+  throw new Error(
+    'NEXT_PUBLIC_SITE_URL environment variable is required in production'
   )
 }
 
 export async function signUp(formData: FormData) {
   const supabase = await createClient()
-  const origin = await getSiteOrigin()
+  const origin = getSiteOrigin()
 
   const password = formData.get('password') as string
   const confirmPassword = formData.get('confirm_password') as string
@@ -42,7 +40,7 @@ export async function signUp(formData: FormData) {
 
 export async function forgotPassword(formData: FormData) {
   const supabase = await createClient()
-  const origin = await getSiteOrigin()
+  const origin = getSiteOrigin()
 
   const { error } = await supabase.auth.resetPasswordForEmail(
     formData.get('email') as string,
