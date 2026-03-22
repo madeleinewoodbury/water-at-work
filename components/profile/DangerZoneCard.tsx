@@ -52,7 +52,7 @@ export default function DangerZoneCard() {
         <button
           onClick={handleDelete}
           disabled={confirmation !== 'DELETE' || isPending}
-          className="rounded-md border border-destructive/50 px-3 py-1.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
+          className="cursor-pointer rounded-md border border-destructive/50 px-3 py-1.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isPending ? 'Deleting…' : 'Delete Account'}
         </button>

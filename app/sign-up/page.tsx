@@ -84,7 +84,7 @@ export default async function SignUpPage({
             Already have an account?&nbsp;
             <Link
               href="/sign-in"
-              className="font-medium text-primary underline-offset-4 hover:underline"
+              className="cursor-pointer font-medium text-primary underline-offset-4 hover:underline"
             >
               Sign in
             </Link>

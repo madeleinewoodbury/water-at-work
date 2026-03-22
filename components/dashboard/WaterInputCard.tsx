@@ -111,7 +111,7 @@ export default function WaterInputCard({ personalTotal, dailyGoal, entries, isOp
               type="button"
               disabled={isPending}
               onClick={() => optOutId && handleOptBackIn(optOutId)}
-              className="text-primary underline underline-offset-2 disabled:opacity-50"
+              className="cursor-pointer text-primary underline underline-offset-2 disabled:opacity-50"
             >
               Opt back in
             </button>
@@ -229,7 +229,7 @@ export default function WaterInputCard({ personalTotal, dailyGoal, entries, isOp
               type="button"
               disabled={isPending}
               onClick={handleOptOut}
-              className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+              className="cursor-pointer text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
             >
               Sitting out today? Opt out
             </button>

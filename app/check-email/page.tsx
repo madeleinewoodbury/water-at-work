@@ -43,7 +43,7 @@ export default async function CheckEmailPage({
           <CardFooter className="justify-center text-sm text-muted-foreground">
             <Link
               href="/sign-in"
-              className="font-medium text-primary underline-offset-4 hover:underline"
+              className="cursor-pointer font-medium text-primary underline-offset-4 hover:underline"
             >
               Back to sign in
             </Link>

@@ -113,7 +113,7 @@ export default function OptOutSchedulerCard({ scheduledOptOuts }: Props) {
                     type="button"
                     disabled={isPending}
                     onClick={() => handleDelete(o.id)}
-                    className="text-xs text-muted-foreground underline underline-offset-2 hover:text-destructive disabled:opacity-50"
+                    className="cursor-pointer text-xs text-muted-foreground underline underline-offset-2 hover:text-destructive disabled:opacity-50"
                   >
                     Remove
                   </button>

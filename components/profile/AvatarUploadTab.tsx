@@ -144,7 +144,7 @@ export default function AvatarUploadTab({ isPending, onUpload, error }: Props) {
           </Button>
           <button
             onClick={handleCancel}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Cancel
           </button>

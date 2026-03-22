@@ -108,7 +108,7 @@ export default function ProfileIdentityCard({
   }
 
   const tabClass = (tab: Tab) =>
-    `px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+    `cursor-pointer px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
       activeTab === tab
         ? 'bg-primary text-primary-foreground'
         : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -132,7 +132,7 @@ export default function ProfileIdentityCard({
           </div>
           <button
             onClick={() => { setIsChangingPhoto(!isChangingPhoto); setAvatarMessage(null) }}
-            className="shrink-0 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+            className="cursor-pointer shrink-0 text-sm font-medium text-primary transition-colors hover:text-primary/80"
           >
             Change photo
           </button>
@@ -145,7 +145,7 @@ export default function ProfileIdentityCard({
               <p className="text-sm font-medium">Choose a photo</p>
               <button
                 onClick={() => { setIsChangingPhoto(false); setAvatarMessage(null) }}
-                className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="flex size-6 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Close"
               >
                 <X className="size-4" />
@@ -198,7 +198,7 @@ export default function ProfileIdentityCard({
                         onClick={() => setSelectedPreset(preset.id)}
                         title={preset.id.replace(/-/g, ' ')}
                         className={cn(
-                          'flex size-10 items-center justify-center rounded-full ring-offset-background transition-all',
+                          'flex size-10 cursor-pointer items-center justify-center rounded-full ring-offset-background transition-all',
                           preset.bg,
                           selectedPreset === preset.id
                             ? 'ring-2 ring-primary ring-offset-2'

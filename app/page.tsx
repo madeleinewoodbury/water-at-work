@@ -27,13 +27,13 @@ export default function LandingPage() {
       <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
         <Link
           href="/sign-up"
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/85"
+          className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/85"
         >
           Get started
         </Link>
         <Link
           href="/sign-in"
-          className="inline-flex h-10 items-center justify-center rounded-lg border border-border px-8 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+          className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-border px-8 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
         >
           Sign in
         </Link>

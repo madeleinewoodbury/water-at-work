@@ -47,7 +47,7 @@ export default function HistoryDay({ date, total, dailyGoal, entries }: Props) {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+        className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
       >
         {expanded ? (
           <ChevronDown className="size-4 shrink-0 text-muted-foreground" />

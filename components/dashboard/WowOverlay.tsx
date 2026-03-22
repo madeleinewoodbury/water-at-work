@@ -33,7 +33,7 @@ export default function WowOverlay({ current, onDismiss }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-300"
+      className="fixed inset-0 z-50 flex cursor-pointer items-center justify-center animate-in fade-in duration-300"
       onClick={onDismiss}
     >
       <div className="absolute inset-0 bg-black/20" />

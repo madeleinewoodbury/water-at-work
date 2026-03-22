@@ -46,7 +46,7 @@ export default function UserMenu({ displayName, email, avatarUrl }: Props) {
               <span className="text-sm text-foreground">Theme</span>
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="relative flex size-7 items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted"
+                className="relative flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted"
                 aria-label="Toggle theme"
               >
                 <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -55,13 +55,13 @@ export default function UserMenu({ displayName, email, avatarUrl }: Props) {
             </div>
             <Link
               href="/profile"
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground outline-none transition-colors hover:bg-muted"
+              className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground outline-none transition-colors hover:bg-muted"
             >
               <User className="size-4" />
               Profile
             </Link>
             <button
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground outline-none transition-colors hover:bg-muted disabled:opacity-50"
+              className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground outline-none transition-colors hover:bg-muted disabled:opacity-50"
               disabled={isPending}
               onClick={handleSignOut}
             >

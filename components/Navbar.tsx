@@ -5,10 +5,10 @@ import UserMenu from './UserMenu'
 import BrandLogo from './BrandLogo'
 
 const navLinkClass =
-  'inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted'
+  'inline-flex h-7 cursor-pointer items-center justify-center rounded-lg px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted'
 
 const navPrimaryClass =
-  'inline-flex h-7 items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85'
+  'inline-flex h-7 cursor-pointer items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85'
 
 export default async function Navbar() {
   const supabase = await createClient()
@@ -36,7 +36,7 @@ export default async function Navbar() {
       <nav className="mx-auto flex h-14 w-full max-w-[1200px] items-center justify-between px-6">
         <Link
           href={user ? '/dashboard' : '/'}
-          className="flex items-center gap-1.5 text-base font-bold tracking-tight text-foreground"
+          className="flex cursor-pointer items-center gap-1.5 text-base font-bold tracking-tight text-foreground"
         >
           <BrandLogo variant="nav" />
         </Link>

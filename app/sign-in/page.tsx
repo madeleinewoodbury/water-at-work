@@ -53,7 +53,7 @@ export default async function SignInPage({
                   <Label htmlFor="password">Password</Label>
                   <Link
                     href="/forgot-password"
-                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                    className="cursor-pointer text-xs text-muted-foreground underline-offset-4 hover:underline"
                   >
                     Forgot password?
                   </Link>
@@ -78,7 +78,7 @@ export default async function SignInPage({
             Don&apos;t have an account?&nbsp;
             <Link
               href="/sign-up"
-              className="font-medium text-primary underline-offset-4 hover:underline"
+              className="cursor-pointer font-medium text-primary underline-offset-4 hover:underline"
             >
               Sign up
             </Link>

@@ -209,9 +209,8 @@ export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps)
         <text
           x={goalLineX2 + 5}
           y={GOAL_Y + 4}
-          fill={goalReached ? 'oklch(0.75 0.15 85)' : 'var(--muted-foreground)'}
-          fontSize="9"
-          opacity="0.7"
+          fill={goalReached ? 'oklch(0.55 0.15 85)' : 'var(--muted-foreground)'}
+          fontSize="10"
           style={{ transition: 'fill 0.5s' }}
         >
           Goal
