@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 
 async function getSiteOrigin() {
@@ -40,7 +40,7 @@ export async function forgotPassword(formData: FormData) {
 
   const { error } = await supabase.auth.resetPasswordForEmail(
     formData.get('email') as string,
-    { redirectTo: `${origin}/auth/callback` }
+    { redirectTo: `${origin}/auth/callback?next=/auth/update-password` }
   )
 
   if (error) {
@@ -61,6 +61,8 @@ export async function updatePassword(formData: FormData) {
     redirect(`/auth/update-password?error=${encodeURIComponent(error.message)}`)
   }
 
+  const cookieStore = await cookies()
+  cookieStore.delete('pw_recovery')
   revalidatePath('/', 'layout')
   redirect('/dashboard')
 }

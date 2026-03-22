@@ -192,7 +192,9 @@ export async function deleteAccount(
   const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id)
   if (error) return { error: error.message }
 
-  redirect('/sign-in')
+  await supabase.auth.signOut()
+  revalidatePath('/', 'layout')
+  redirect('/')
 }
 
 export async function addOptOut(

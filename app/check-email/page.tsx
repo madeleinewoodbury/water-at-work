@@ -29,11 +29,14 @@ export default async function CheckEmailPage({
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
               {isReset
                 ? "We've sent a password reset link to your email address. Click the link in the email to set a new password."
                 : "We've sent a confirmation link to your email address. Click the link in the email to activate your account."}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Don&apos;t see it? Check your spam or junk folder.
             </p>
           </CardContent>
 

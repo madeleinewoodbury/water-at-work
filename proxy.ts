@@ -31,6 +31,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/sign-in', request.url))
   }
 
+  const authOnlyPaths = ['/sign-in', '/sign-up', '/forgot-password', '/check-email']
+  if (user && authOnlyPaths.some((p) => request.nextUrl.pathname.startsWith(p))) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  if (request.nextUrl.pathname.startsWith('/auth/update-password')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/sign-in', request.url))
+    }
+    if (!request.cookies.get('pw_recovery')) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+  }
+
   return response
 }
 

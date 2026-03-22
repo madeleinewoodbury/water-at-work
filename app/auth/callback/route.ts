@@ -18,7 +18,12 @@ export async function GET(request: NextRequest) {
         new URL(`/sign-in?error=${encodeURIComponent(error.message)}`, origin)
       )
     }
-    return NextResponse.redirect(new URL('/dashboard', origin))
+    const next = searchParams.get('next') ?? '/dashboard'
+    const response = NextResponse.redirect(new URL(next, origin))
+    if (next === '/auth/update-password') {
+      response.cookies.set('pw_recovery', '1', { httpOnly: true, maxAge: 600, path: '/' })
+    }
+    return response
   }
 
   // OTP flow (email confirmation, password reset)
@@ -30,7 +35,9 @@ export async function GET(request: NextRequest) {
       )
     }
     if (type === 'recovery') {
-      return NextResponse.redirect(new URL('/auth/update-password', origin))
+      const response = NextResponse.redirect(new URL('/auth/update-password', origin))
+      response.cookies.set('pw_recovery', '1', { httpOnly: true, maxAge: 600, path: '/' })
+      return response
     }
     return NextResponse.redirect(new URL('/dashboard', origin))
   }
