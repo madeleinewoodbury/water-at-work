@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import GitHubAuthButton from '@/components/auth/github-auth-button'
+import GoogleAuthButton from '@/components/auth/google-auth-button'
 
 export default async function SignInPage({
   searchParams,
@@ -83,7 +84,10 @@ export default async function SignInPage({
               </div>
             </div>
 
-            <GitHubAuthButton />
+            <div className="flex flex-col gap-2">
+              <GitHubAuthButton />
+              <GoogleAuthButton />
+            </div>
           </CardContent>
 
           <CardFooter className="justify-center text-sm text-muted-foreground">
