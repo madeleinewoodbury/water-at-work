@@ -1,9 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { completeOnboarding } from '@/app/onboarding/actions'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { getGravatarUrl } from '@/lib/gravatar'
 import {
   Card,
   CardContent,
@@ -11,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import OnboardingForm from '@/components/auth/onboarding-form'
 
 export default async function OnboardingPage({
   searchParams,
@@ -34,6 +32,13 @@ export default async function OnboardingPage({
 
   if (profile?.display_name) redirect('/dashboard')
 
+  const githubAvatarUrl =
+    user.app_metadata?.provider === 'github'
+      ? (user.user_metadata?.avatar_url as string | undefined)
+      : undefined
+
+  const gravatarUrl = user.email ? getGravatarUrl(user.email, 200) : undefined
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 pb-14">
       <div className="w-full max-w-md">
@@ -46,45 +51,7 @@ export default async function OnboardingPage({
           </CardHeader>
 
           <CardContent>
-            {error && (
-              <div className="mb-4 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-
-            <form action={completeOnboarding} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="display_name">Your name</Label>
-                <Input
-                  id="display_name"
-                  name="display_name"
-                  type="text"
-                  required
-                  maxLength={50}
-                  autoComplete="nickname"
-                  placeholder="What should your teammates call you?"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="daily_goal">Daily water goal (oz)</Label>
-                <Input
-                  id="daily_goal"
-                  name="daily_goal"
-                  type="number"
-                  required
-                  min={1}
-                  defaultValue={32}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Default is 32 oz — adjust to match your goal.
-                </p>
-              </div>
-
-              <Button type="submit" className="mt-1 w-full">
-                Get started
-              </Button>
-            </form>
+            <OnboardingForm githubAvatarUrl={githubAvatarUrl} gravatarUrl={gravatarUrl} error={error} />
           </CardContent>
         </Card>
       </div>

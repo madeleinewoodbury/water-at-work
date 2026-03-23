@@ -63,9 +63,10 @@ export async function updateAvatar(
     if (uploadError) return { error: uploadError.message }
 
     const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+    const avatarUrlWithCacheBust = `${urlData.publicUrl}?t=${Date.now()}`
     const { error: dbError } = await supabase
       .from('users')
-      .update({ avatar_url: urlData.publicUrl })
+      .update({ avatar_url: avatarUrlWithCacheBust })
       .eq('id', user.id)
     if (dbError) return { error: dbError.message }
 
