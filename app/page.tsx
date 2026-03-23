@@ -5,7 +5,7 @@ export default function LandingPage() {
     <main className="flex flex-1 flex-col items-center justify-center px-6 pb-14 text-center">
       {/* eyebrow */}
       <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-        💧 Your hydration companion
+        💧 Water at Work
       </span>
 
       {/* headline */}
