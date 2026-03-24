@@ -49,8 +49,9 @@ type Props = {
 const MAX_WOW_QUEUE = 3
 
 export default function DashboardRealtime({ initialData }: Props) {
-  const { currentUserId, today, teamUsers } = initialData
+  const { currentUserId, today } = initialData
 
+  const [teamUsers, setTeamUsers] = useState(initialData.teamUsers)
   const [intakeLogs, setIntakeLogs] = useState(initialData.intakeLogs)
   const [myEntries, setMyEntries] = useState(initialData.myEntries)
   const [todayOptOuts, setTodayOptOuts] = useState(initialData.todayOptOuts)
@@ -176,6 +177,31 @@ export default function DashboardRealtime({ initialData }: Props) {
     [today]
   )
 
+  const handleUserChange = useCallback(
+    (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
+      if (payload.eventType === 'UPDATE') {
+        const updated = payload.new as unknown as TeamUser
+        setTeamUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
+      }
+
+      if (payload.eventType === 'INSERT') {
+        const newUser = payload.new as unknown as TeamUser
+        setTeamUsers((prev) => {
+          if (prev.some((u) => u.id === newUser.id)) return prev
+          return [...prev, newUser]
+        })
+      }
+
+      if (payload.eventType === 'DELETE') {
+        const old = payload.old as unknown as TeamUser
+        if (old.id) {
+          setTeamUsers((prev) => prev.filter((u) => u.id !== old.id))
+        }
+      }
+    },
+    []
+  )
+
   // Subscribe to real-time changes
   useEffect(() => {
     const supabase = createClient()
@@ -201,12 +227,21 @@ export default function DashboardRealtime({ initialData }: Props) {
         },
         handleOptOutChange
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'users',
+        },
+        handleUserChange
+      )
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [today, handleIntakeChange, handleOptOutChange])
+  }, [today, handleIntakeChange, handleOptOutChange, handleUserChange])
 
   const handleWowDismiss = useCallback(() => {
     setWowQueue((prev) => prev.slice(1))

@@ -189,6 +189,8 @@ CREATE POLICY "Users can delete own opt_out"
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.intake_logs;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.opt_outs;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
 
 ALTER TABLE public.intake_logs REPLICA IDENTITY FULL;
 ALTER TABLE public.opt_outs REPLICA IDENTITY FULL;
+ALTER TABLE public.users REPLICA IDENTITY FULL;
