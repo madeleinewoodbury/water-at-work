@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-const PRESETS = [8, 12, 16, 24]
+const PRESETS = [4, 8, 12, 16, 24]
 
 type Entry = { id: string; ounces: number; created_at: string }
 
