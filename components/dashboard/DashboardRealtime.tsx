@@ -29,6 +29,13 @@ type OptOut = {
   user_id: string
 }
 
+type DailyGoalOverride = {
+  id: string
+  user_id: string
+  date: string
+  daily_goal: number
+}
+
 type PersonalEntry = {
   id: string
   ounces: number
@@ -43,6 +50,7 @@ type Props = {
     teamUsers: TeamUser[]
     myEntries: PersonalEntry[]
     todayOptOuts: OptOut[]
+    todayOverrides: DailyGoalOverride[]
   }
 }
 
@@ -55,6 +63,7 @@ export default function DashboardRealtime({ initialData }: Props) {
   const [intakeLogs, setIntakeLogs] = useState(initialData.intakeLogs)
   const [myEntries, setMyEntries] = useState(initialData.myEntries)
   const [todayOptOuts, setTodayOptOuts] = useState(initialData.todayOptOuts)
+  const [todayOverrides, setTodayOverrides] = useState(initialData.todayOverrides)
   const [wowQueue, setWowQueue] = useState<WowEvent[]>([])
 
   // Build a lookup for user display names (for wow overlay)
@@ -71,6 +80,11 @@ export default function DashboardRealtime({ initialData }: Props) {
     const optedOutUserIds = new Set(todayOptOuts.map((o) => o.user_id))
     const currentUserOptOut = todayOptOuts.find((o) => o.user_id === currentUserId)
 
+    // Build override lookup: user_id -> override row
+    const overrideMap = new Map(todayOverrides.map((o) => [o.user_id, o]))
+    const getEffectiveGoal = (u: TeamUser) =>
+      overrideMap.get(u.id)?.daily_goal ?? u.daily_goal ?? 32
+
     const userTotals: Record<string, number> = {}
     for (const row of intakeLogs) {
       userTotals[row.user_id] = (userTotals[row.user_id] ?? 0) + row.ounces
@@ -78,18 +92,20 @@ export default function DashboardRealtime({ initialData }: Props) {
 
     const currentUser = teamUsers.find((u) => u.id === currentUserId)
     const personalTotal = userTotals[currentUserId] ?? 0
-    const personalGoal = currentUser?.daily_goal ?? 32
+    const personalOverride = overrideMap.get(currentUserId)
+    const personalGoal = currentUser ? getEffectiveGoal(currentUser) : 32
+    const personalBaseGoal = currentUser?.daily_goal ?? 32
 
     const activeUsers = teamUsers.filter((u) => !optedOutUserIds.has(u.id))
     const teamTotal = activeUsers.reduce((s, u) => s + (userTotals[u.id] ?? 0), 0)
-    const teamGoal = activeUsers.reduce((sum, u) => sum + (u.daily_goal ?? 32), 0)
+    const teamGoal = activeUsers.reduce((sum, u) => sum + getEffectiveGoal(u), 0)
 
     const userList = teamUsers
       .map((u) => ({
         id: u.id,
         displayName: getDisplayName(u),
         ounces: userTotals[u.id] ?? 0,
-        dailyGoal: u.daily_goal ?? 32,
+        dailyGoal: getEffectiveGoal(u),
         avatarUrl: u.avatar_url ?? null,
         email: u.email,
         isOptedOut: optedOutUserIds.has(u.id),
@@ -102,13 +118,16 @@ export default function DashboardRealtime({ initialData }: Props) {
     return {
       personalTotal,
       personalGoal,
+      personalBaseGoal,
+      personalOverrideGoal: personalOverride?.daily_goal ?? null,
+      personalOverrideId: personalOverride?.id ?? null,
       teamTotal,
       teamGoal,
       activeUsers,
       userList,
       currentUserOptOut,
     }
-  }, [intakeLogs, todayOptOuts, teamUsers, currentUserId])
+  }, [intakeLogs, todayOptOuts, todayOverrides, teamUsers, currentUserId])
 
   // Real-time event handlers
   const handleIntakeChange = useCallback(
@@ -177,6 +196,32 @@ export default function DashboardRealtime({ initialData }: Props) {
     [today]
   )
 
+  const handleOverrideChange = useCallback(
+    (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
+      if (payload.eventType === 'INSERT') {
+        const row = payload.new as unknown as DailyGoalOverride
+        if (row.date === today) {
+          setTodayOverrides((prev) => [...prev.filter((o) => o.user_id !== row.user_id), row])
+        }
+      }
+
+      if (payload.eventType === 'UPDATE') {
+        const row = payload.new as unknown as DailyGoalOverride
+        if (row.date === today) {
+          setTodayOverrides((prev) => prev.map((o) => (o.id === row.id ? row : o)))
+        }
+      }
+
+      if (payload.eventType === 'DELETE') {
+        const old = payload.old as unknown as DailyGoalOverride
+        if (old.id) {
+          setTodayOverrides((prev) => prev.filter((o) => o.id !== old.id))
+        }
+      }
+    },
+    [today]
+  )
+
   const handleUserChange = useCallback(
     (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
       if (payload.eventType === 'UPDATE') {
@@ -232,6 +277,16 @@ export default function DashboardRealtime({ initialData }: Props) {
         {
           event: '*',
           schema: 'public',
+          table: 'daily_goal_overrides',
+          filter: `date=eq.${today}`,
+        },
+        handleOverrideChange
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
           table: 'users',
         },
         handleUserChange
@@ -241,7 +296,7 @@ export default function DashboardRealtime({ initialData }: Props) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [today, handleIntakeChange, handleOptOutChange, handleUserChange])
+  }, [today, handleIntakeChange, handleOptOutChange, handleOverrideChange, handleUserChange])
 
   const handleWowDismiss = useCallback(() => {
     setWowQueue((prev) => prev.slice(1))
@@ -252,6 +307,9 @@ export default function DashboardRealtime({ initialData }: Props) {
       <WaterInputCard
         personalTotal={dashboardData.personalTotal}
         dailyGoal={dashboardData.personalGoal}
+        baseGoal={dashboardData.personalBaseGoal}
+        overrideGoal={dashboardData.personalOverrideGoal}
+        overrideId={dashboardData.personalOverrideId}
         entries={myEntries}
         isOptedOut={!!dashboardData.currentUserOptOut}
         optOutId={dashboardData.currentUserOptOut?.id ?? null}
