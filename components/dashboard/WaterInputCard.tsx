@@ -1,8 +1,16 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
-import { logIntake, updateIntake, deleteIntake, optOutToday, optBackIn } from '@/app/dashboard/actions'
+import { Pencil, Trash2, PencilLine } from 'lucide-react'
+import {
+  logIntake,
+  updateIntake,
+  deleteIntake,
+  optOutToday,
+  optBackIn,
+  setDailyGoalOverride,
+  clearDailyGoalOverride,
+} from '@/app/dashboard/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -20,6 +28,9 @@ type Entry = { id: string; ounces: number; created_at: string }
 type Props = {
   personalTotal: number
   dailyGoal: number
+  baseGoal: number
+  overrideGoal: number | null
+  overrideId: string | null
   entries: Entry[]
   isOptedOut: boolean
   optOutId: string | null
@@ -29,7 +40,16 @@ function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
-export default function WaterInputCard({ personalTotal, dailyGoal, entries, isOptedOut, optOutId }: Props) {
+export default function WaterInputCard({
+  personalTotal,
+  dailyGoal,
+  baseGoal,
+  overrideGoal,
+  overrideId,
+  entries,
+  isOptedOut,
+  optOutId,
+}: Props) {
   const [ounces, setOunces] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -38,6 +58,10 @@ export default function WaterInputCard({ personalTotal, dailyGoal, entries, isOp
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
+
+  const [showOverrideForm, setShowOverrideForm] = useState(false)
+  const [overrideValue, setOverrideValue] = useState('')
+  const [overrideError, setOverrideError] = useState<string | null>(null)
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -93,14 +117,106 @@ export default function WaterInputCard({ personalTotal, dailyGoal, entries, isOp
     })
   }
 
+  function handleSetOverride() {
+    const fd = new FormData()
+    fd.set('daily_goal', overrideValue)
+    startTransition(async () => {
+      const result = await setDailyGoalOverride(null, fd)
+      if (result?.error) {
+        setOverrideError(result.error)
+      } else {
+        setOverrideError(null)
+        setShowOverrideForm(false)
+        setOverrideValue('')
+      }
+    })
+  }
+
+  function handleClearOverride() {
+    if (!overrideId) return
+    const fd = new FormData()
+    fd.set('id', overrideId)
+    startTransition(async () => {
+      const result = await clearDailyGoalOverride(null, fd)
+      if (result?.error) {
+        setOverrideError(result.error)
+      } else {
+        setOverrideError(null)
+      }
+    })
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Log Water Intake</CardTitle>
         <CardDescription>
-          Your total today:{' '}
-          <span className="font-semibold text-foreground">{personalTotal} oz</span>
-          <span className="text-muted-foreground"> / {dailyGoal} oz goal</span>
+          {showOverrideForm ? (
+            <span className="flex items-center gap-2">
+              <span>Goal today:</span>
+              <Input
+                type="number"
+                min={1}
+                placeholder={String(baseGoal)}
+                value={overrideValue}
+                onChange={(e) => setOverrideValue(e.target.value)}
+                className="h-6 w-20 text-xs"
+              />
+              <span className="text-muted-foreground">oz</span>
+              <Button
+                size="sm"
+                className="h-6 px-2 text-xs"
+                disabled={isPending || !overrideValue}
+                onClick={handleSetOverride}
+              >
+                Save
+              </Button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => {
+                  setShowOverrideForm(false)
+                  setOverrideValue('')
+                  setOverrideError(null)
+                }}
+                className="cursor-pointer text-xs text-muted-foreground underline underline-offset-2 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              {overrideError && <span className="text-xs text-destructive">{overrideError}</span>}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1">
+              <span>
+                Your total today:{' '}
+                <span className="font-semibold text-foreground">{personalTotal} oz</span>
+                <span className="text-muted-foreground"> / {dailyGoal} oz goal</span>
+              </span>
+              {overrideGoal !== null ? (
+                <>
+                  <span className="text-xs text-muted-foreground">(default: {baseGoal} oz)</span>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={handleClearOverride}
+                    className="cursor-pointer text-xs text-primary underline underline-offset-2 disabled:opacity-50"
+                  >
+                    Reset
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => setShowOverrideForm(true)}
+                  className="cursor-pointer text-muted-foreground/60 hover:text-foreground disabled:opacity-50"
+                  title="Adjust today's goal"
+                >
+                  <PencilLine className="size-3" />
+                </button>
+              )}
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

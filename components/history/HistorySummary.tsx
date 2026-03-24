@@ -6,7 +6,6 @@ type Props = {
   daysTracked: number
   daysMetGoal: number
   avgPerDay: number
-  dailyGoal: number
 }
 
 export default function HistorySummary({
@@ -14,7 +13,6 @@ export default function HistorySummary({
   daysTracked,
   daysMetGoal,
   avgPerDay,
-  dailyGoal,
 }: Props) {
   return (
     <Card size="sm">
@@ -22,10 +20,7 @@ export default function HistorySummary({
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Stat label="Total" value={formatWaterAmount(totalOunces)} />
           <Stat label="Days tracked" value={String(daysTracked)} />
-          <Stat
-            label={`Goal met (${dailyGoal} oz)`}
-            value={String(daysMetGoal)}
-          />
+          <Stat label="Days goal met" value={String(daysMetGoal)} />
           <Stat label="Daily avg" value={formatWaterAmount(avgPerDay)} />
         </div>
       </CardContent>

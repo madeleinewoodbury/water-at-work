@@ -181,7 +181,54 @@ CREATE POLICY "Users can delete own opt_out"
 
 
 -- ============================================================
--- 5. Real-time
+-- 5. public.daily_goal_overrides
+--    Per-day override of a user's default daily_goal.
+--    A row here means the user chose a different goal for
+--    that specific date. If no row exists, the base
+--    daily_goal from public.users applies.
+-- ============================================================
+
+DROP TABLE IF EXISTS public.daily_goal_overrides CASCADE;
+
+CREATE TABLE public.daily_goal_overrides (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  date       DATE        NOT NULL,
+  daily_goal INTEGER     NOT NULL CHECK (daily_goal > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, date)
+);
+
+ALTER TABLE public.daily_goal_overrides ENABLE ROW LEVEL SECURITY;
+
+-- All authenticated users can read all overrides (needed for team goal calculations)
+CREATE POLICY "Authenticated users can read all daily_goal_overrides"
+  ON public.daily_goal_overrides FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Users can only insert their own overrides
+CREATE POLICY "Users can insert own daily_goal_override"
+  ON public.daily_goal_overrides FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can only update their own overrides
+CREATE POLICY "Users can update own daily_goal_override"
+  ON public.daily_goal_overrides FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can only delete their own overrides
+CREATE POLICY "Users can delete own daily_goal_override"
+  ON public.daily_goal_overrides FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+
+-- ============================================================
+-- 6. Real-time
 --    Enable postgres_changes subscriptions on tables used by
 --    the live dashboard. REPLICA IDENTITY FULL ensures DELETE
 --    events include the full row (needed to identify user_id).
@@ -190,7 +237,9 @@ CREATE POLICY "Users can delete own opt_out"
 ALTER PUBLICATION supabase_realtime ADD TABLE public.intake_logs;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.opt_outs;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.daily_goal_overrides;
 
 ALTER TABLE public.intake_logs REPLICA IDENTITY FULL;
 ALTER TABLE public.opt_outs REPLICA IDENTITY FULL;
 ALTER TABLE public.users REPLICA IDENTITY FULL;
+ALTER TABLE public.daily_goal_overrides REPLICA IDENTITY FULL;
