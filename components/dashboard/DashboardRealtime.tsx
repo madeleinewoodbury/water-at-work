@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getDisplayName } from '@/lib/utils'
 import WaterInputCard from '@/components/dashboard/WaterInputCard'
@@ -66,13 +66,15 @@ export default function DashboardRealtime({ initialData }: Props) {
   const [todayOverrides, setTodayOverrides] = useState(initialData.todayOverrides)
   const [wowQueue, setWowQueue] = useState<WowEvent[]>([])
 
-  // Build a lookup for user display names (for wow overlay)
-  const userNameMap = useMemo(() => {
+  // Keep a ref for user display names (for wow overlay) so intake handler
+  // doesn't depend on it and won't cause subscription reconnects on profile changes
+  const userNameMapRef = useRef<Record<string, string>>({})
+  useEffect(() => {
     const map: Record<string, string> = {}
     for (const u of teamUsers) {
       map[u.id] = getDisplayName(u)
     }
-    return map
+    userNameMapRef.current = map
   }, [teamUsers])
 
   // Compute all derived dashboard data
@@ -148,7 +150,7 @@ export default function DashboardRealtime({ initialData }: Props) {
             ...prev,
             {
               id: row.id,
-              userName: userNameMap[row.user_id] ?? 'Someone',
+              userName: userNameMapRef.current[row.user_id] ?? 'Someone',
               ounces: row.ounces,
               gif: pickRandomGif(),
             },
@@ -174,7 +176,7 @@ export default function DashboardRealtime({ initialData }: Props) {
         }
       }
     },
-    [currentUserId, userNameMap]
+    [currentUserId]
   )
 
   const handleOptOutChange = useCallback(
