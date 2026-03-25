@@ -23,18 +23,39 @@ type Props = {
   currentUserId: string
 }
 
-function getStatusIndicator(actualPct: number, timeTarget: number) {
-  if (actualPct >= 1) return { emoji: '🏆', label: 'crushed it!', colorClass: 'text-green-700 dark:text-green-400' }
-  if (actualPct >= timeTarget) return { emoji: '💧', label: 'on track', colorClass: 'text-sky-700 dark:text-sky-400' }
-  if (actualPct >= timeTarget * 0.5) return { emoji: '🐢', label: 'behind', colorClass: 'text-amber-700 dark:text-amber-400' }
+const WORKDAY_START = 9
+const WORKDAY_HOURS = 8
+
+function getCompletedHours(now: Date): number {
+  const hour = now.getHours()
+  if (hour < WORKDAY_START) return 0
+  if (hour >= WORKDAY_START + WORKDAY_HOURS) return WORKDAY_HOURS
+  return hour - WORKDAY_START
+}
+
+function getHourlyTarget(dailyGoal: number, completedHours: number): number {
+  return Math.floor((completedHours / WORKDAY_HOURS) * dailyGoal)
+}
+
+function getStatusIndicator(ounces: number, dailyGoal: number, completedHours: number) {
+  const target = getHourlyTarget(dailyGoal, completedHours)
+  const aheadTarget = getHourlyTarget(dailyGoal, Math.min(completedHours + 2, WORKDAY_HOURS))
+
+  if (ounces >= dailyGoal && ounces > aheadTarget)
+    return { emoji: '🌊', label: 'flooded!', colorClass: 'text-orange-700 dark:text-orange-400' }
+  if (ounces >= dailyGoal)
+    return { emoji: '🏆', label: 'crushed it!', colorClass: 'text-green-700 dark:text-green-400' }
+  if (ounces > aheadTarget)
+    return { emoji: '🚿', label: 'too fast', colorClass: 'text-violet-700 dark:text-violet-400' }
+  if (ounces >= target)
+    return { emoji: '💧', label: 'on track', colorClass: 'text-sky-700 dark:text-sky-400' }
+  if (target > 0 && ounces >= target * 0.5)
+    return { emoji: '🐢', label: 'behind', colorClass: 'text-amber-700 dark:text-amber-400' }
   return { emoji: '💤', label: 'slacking', colorClass: 'text-muted-foreground' }
 }
 
 export default function UserListCard({ users, currentUserId }: Props) {
-  const now = new Date()
-  const currentHour = now.getHours() + now.getMinutes() / 60
-  const timeTarget =
-    currentHour < 9 ? 0 : currentHour >= 17 ? 1 : (currentHour - 9) / 8
+  const completedHours = getCompletedHours(new Date())
 
   return (
     <Card className="md:col-span-2">
@@ -46,8 +67,7 @@ export default function UserListCard({ users, currentUserId }: Props) {
         <ul className="divide-y divide-border">
           {users.map((user) => {
             const isCurrentUser = user.id === currentUserId
-            const actualPct = user.ounces / Math.max(user.dailyGoal, 1)
-            const status = getStatusIndicator(actualPct, timeTarget)
+            const status = getStatusIndicator(user.ounces, user.dailyGoal, completedHours)
             return (
               <li
                 key={user.id}
