@@ -23,13 +23,14 @@ type Props = {
   entries: Entry[]
   isOptedOut: boolean
   optOutId: string | null
+  optedOutByAnother: boolean
 }
 
 function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
-export default function WaterInputCard({ personalTotal, dailyGoal, entries, isOptedOut, optOutId }: Props) {
+export default function WaterInputCard({ personalTotal, dailyGoal, entries, isOptedOut, optOutId, optedOutByAnother }: Props) {
   const [ounces, setOunces] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -106,7 +107,7 @@ export default function WaterInputCard({ personalTotal, dailyGoal, entries, isOp
       <CardContent className="flex flex-col gap-3">
         {isOptedOut && (
           <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-            <span>You are sitting out today.</span>
+            <span>{optedOutByAnother ? 'A teammate sat you out for today.' : 'You are sitting out today.'}</span>
             <button
               type="button"
               disabled={isPending}

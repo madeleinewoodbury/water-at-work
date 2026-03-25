@@ -1,4 +1,7 @@
+'use client'
+
 import { cn } from '@/lib/utils'
+import { UserX, Undo2 } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -16,11 +19,17 @@ type User = {
   avatarUrl: string | null
   email: string
   isOptedOut: boolean
+  optOutId: string | null
+  optedOutBy: string | null
 }
 
 type Props = {
   users: User[]
   currentUserId: string
+  isPastCutoff: boolean
+  isPending: boolean
+  onOptOutUser: (userId: string) => void
+  onUndoOptOut: (optOutId: string) => void
 }
 
 function getStatusIndicator(actualPct: number, timeTarget: number) {
@@ -30,11 +39,23 @@ function getStatusIndicator(actualPct: number, timeTarget: number) {
   return { emoji: '💤', label: 'slacking', colorClass: 'text-muted-foreground' }
 }
 
-export default function UserListCard({ users, currentUserId }: Props) {
+export default function UserListCard({
+  users,
+  currentUserId,
+  isPastCutoff,
+  isPending,
+  onOptOutUser,
+  onUndoOptOut,
+}: Props) {
   const now = new Date()
   const currentHour = now.getHours() + now.getMinutes() / 60
   const timeTarget =
     currentHour < 9 ? 0 : currentHour >= 17 ? 1 : (currentHour - 9) / 8
+
+  function handleOptOut(userId: string, displayName: string) {
+    if (!confirm(`Sit out ${displayName} for today?`)) return
+    onOptOutUser(userId)
+  }
 
   return (
     <Card className="md:col-span-2">
@@ -48,6 +69,10 @@ export default function UserListCard({ users, currentUserId }: Props) {
             const isCurrentUser = user.id === currentUserId
             const actualPct = user.ounces / Math.max(user.dailyGoal, 1)
             const status = getStatusIndicator(actualPct, timeTarget)
+            const isTeamOptOut = user.isOptedOut && user.optedOutBy && user.optedOutBy !== user.id
+            const canSitOut = !isCurrentUser && !user.isOptedOut && user.ounces === 0 && isPastCutoff
+            const canUndo = isTeamOptOut && user.optedOutBy === currentUserId && user.optOutId
+
             return (
               <li
                 key={user.id}
@@ -70,7 +95,7 @@ export default function UserListCard({ users, currentUserId }: Props) {
                     )}
                     {user.isOptedOut && (
                       <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground font-normal shrink-0">
-                        sitting out
+                        {isTeamOptOut ? 'sat out by teammate' : 'sitting out'}
                       </span>
                     )}
                   </span>
@@ -80,6 +105,32 @@ export default function UserListCard({ users, currentUserId }: Props) {
                   <span className={cn('shrink-0 text-xs font-normal', status.colorClass)}>
                     {status.emoji} {status.label}
                   </span>
+                )}
+
+                {canUndo && (
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => onUndoOptOut(user.optOutId!)}
+                    className="shrink-0 cursor-pointer text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+                    title="Undo sit out"
+                  >
+                    <Undo2 className="inline size-3 mr-0.5" />
+                    Undo
+                  </button>
+                )}
+
+                {canSitOut && (
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => handleOptOut(user.id, user.displayName)}
+                    className="shrink-0 cursor-pointer text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+                    title="Sit out this user for today"
+                  >
+                    <UserX className="inline size-3 mr-0.5" />
+                    Sit out
+                  </button>
                 )}
 
                 <span className="shrink-0 tabular-nums text-sm">

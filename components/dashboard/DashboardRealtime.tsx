@@ -1,12 +1,15 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getDisplayName } from '@/lib/utils'
+import { optOutUser, undoTeamOptOut } from '@/app/dashboard/actions'
 import WaterInputCard from '@/components/dashboard/WaterInputCard'
 import TeamProgressCard from '@/components/dashboard/TeamProgressCard'
 import UserListCard from '@/components/dashboard/UserListCard'
 import WowOverlay, { type WowEvent, pickRandomGif } from '@/components/dashboard/WowOverlay'
+
+const CUTOFF_HOUR = 12
 
 type IntakeLog = {
   id: string
@@ -27,6 +30,7 @@ type TeamUser = {
 type OptOut = {
   id: string
   user_id: string
+  opted_out_by: string | null
 }
 
 type PersonalEntry = {
@@ -56,6 +60,20 @@ export default function DashboardRealtime({ initialData }: Props) {
   const [myEntries, setMyEntries] = useState(initialData.myEntries)
   const [todayOptOuts, setTodayOptOuts] = useState(initialData.todayOptOuts)
   const [wowQueue, setWowQueue] = useState<WowEvent[]>([])
+  const [isPending, startTransition] = useTransition()
+
+  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
+
+  const [isPastCutoff, setIsPastCutoff] = useState(() => new Date().getHours() >= CUTOFF_HOUR)
+
+  useEffect(() => {
+    if (isPastCutoff) return
+    const check = () => {
+      if (new Date().getHours() >= CUTOFF_HOUR) setIsPastCutoff(true)
+    }
+    const interval = setInterval(check, 60_000)
+    return () => clearInterval(interval)
+  }, [isPastCutoff])
 
   // Build a lookup for user display names (for wow overlay)
   const userNameMap = useMemo(() => {
@@ -68,8 +86,8 @@ export default function DashboardRealtime({ initialData }: Props) {
 
   // Compute all derived dashboard data
   const dashboardData = useMemo(() => {
-    const optedOutUserIds = new Set(todayOptOuts.map((o) => o.user_id))
-    const currentUserOptOut = todayOptOuts.find((o) => o.user_id === currentUserId)
+    const optOutMap = new Map(todayOptOuts.map((o) => [o.user_id, o]))
+    const currentUserOptOut = optOutMap.get(currentUserId) ?? null
 
     const userTotals: Record<string, number> = {}
     for (const row of intakeLogs) {
@@ -80,20 +98,25 @@ export default function DashboardRealtime({ initialData }: Props) {
     const personalTotal = userTotals[currentUserId] ?? 0
     const personalGoal = currentUser?.daily_goal ?? 32
 
-    const activeUsers = teamUsers.filter((u) => !optedOutUserIds.has(u.id))
+    const activeUsers = teamUsers.filter((u) => !optOutMap.has(u.id))
     const teamTotal = activeUsers.reduce((s, u) => s + (userTotals[u.id] ?? 0), 0)
     const teamGoal = activeUsers.reduce((sum, u) => sum + (u.daily_goal ?? 32), 0)
 
     const userList = teamUsers
-      .map((u) => ({
-        id: u.id,
-        displayName: getDisplayName(u),
-        ounces: userTotals[u.id] ?? 0,
-        dailyGoal: u.daily_goal ?? 32,
-        avatarUrl: u.avatar_url ?? null,
-        email: u.email,
-        isOptedOut: optedOutUserIds.has(u.id),
-      }))
+      .map((u) => {
+        const optOut = optOutMap.get(u.id)
+        return {
+          id: u.id,
+          displayName: getDisplayName(u),
+          ounces: userTotals[u.id] ?? 0,
+          dailyGoal: u.daily_goal ?? 32,
+          avatarUrl: u.avatar_url ?? null,
+          email: u.email,
+          isOptedOut: !!optOut,
+          optOutId: optOut?.id ?? null,
+          optedOutBy: optOut?.opted_out_by ?? null,
+        }
+      })
       .sort((a, b) => {
         if (a.isOptedOut !== b.isOptedOut) return a.isOptedOut ? 1 : -1
         return b.ounces - a.ounces
@@ -163,7 +186,11 @@ export default function DashboardRealtime({ initialData }: Props) {
       if (payload.eventType === 'INSERT') {
         const row = payload.new as unknown as OptOut & { start_date: string; end_date: string }
         if (row.start_date <= today && row.end_date >= today) {
-          setTodayOptOuts((prev) => [...prev, { id: row.id, user_id: row.user_id }])
+          setTodayOptOuts((prev) => [...prev, {
+            id: row.id,
+            user_id: row.user_id,
+            opted_out_by: row.opted_out_by ?? null,
+          }])
         }
       }
 
@@ -243,6 +270,21 @@ export default function DashboardRealtime({ initialData }: Props) {
     }
   }, [today, handleIntakeChange, handleOptOutChange, handleUserChange])
 
+  const handleOptOutUser = useCallback(
+    (targetUserId: string) => {
+      startTransition(async () => {
+        await optOutUser(targetUserId, timezone)
+      })
+    },
+    [timezone]
+  )
+
+  const handleUndoTeamOptOut = useCallback((optOutId: string) => {
+    startTransition(async () => {
+      await undoTeamOptOut(optOutId)
+    })
+  }, [])
+
   const handleWowDismiss = useCallback(() => {
     setWowQueue((prev) => prev.slice(1))
   }, [])
@@ -255,6 +297,11 @@ export default function DashboardRealtime({ initialData }: Props) {
         entries={myEntries}
         isOptedOut={!!dashboardData.currentUserOptOut}
         optOutId={dashboardData.currentUserOptOut?.id ?? null}
+        optedOutByAnother={
+          !!dashboardData.currentUserOptOut &&
+          !!dashboardData.currentUserOptOut.opted_out_by &&
+          dashboardData.currentUserOptOut.opted_out_by !== currentUserId
+        }
       />
       <TeamProgressCard
         teamTotal={dashboardData.teamTotal}
@@ -262,7 +309,14 @@ export default function DashboardRealtime({ initialData }: Props) {
         totalMemberCount={teamUsers.length}
         teamGoal={dashboardData.teamGoal}
       />
-      <UserListCard users={dashboardData.userList} currentUserId={currentUserId} />
+      <UserListCard
+        users={dashboardData.userList}
+        currentUserId={currentUserId}
+        isPastCutoff={isPastCutoff}
+        isPending={isPending}
+        onOptOutUser={handleOptOutUser}
+        onUndoOptOut={handleUndoTeamOptOut}
+      />
       <WowOverlay current={wowQueue[0] ?? null} onDismiss={handleWowDismiss} />
     </>
   )

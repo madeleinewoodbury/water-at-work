@@ -145,14 +145,18 @@ CREATE POLICY "Public avatar read"
 -- 4. public.opt_outs
 --    Each row = one user's opt-out window (inclusive on both ends).
 --    A single-day opt-out: start_date = end_date = that date.
+--    opted_out_by tracks who initiated the opt-out:
+--      - Self opt-out: opted_out_by = user_id
+--      - Team opt-out: opted_out_by = the teammate who initiated it
 -- ============================================================
 
 CREATE TABLE public.opt_outs (
-  id         UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    UUID  NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  start_date DATE  NOT NULL,
-  end_date   DATE  NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  id             UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID  NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  opted_out_by   UUID  REFERENCES auth.users(id) ON DELETE SET NULL,
+  start_date     DATE  NOT NULL,
+  end_date       DATE  NOT NULL,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT opt_outs_date_order CHECK (end_date >= start_date)
 );
 
@@ -167,17 +171,23 @@ CREATE POLICY "Authenticated users can read all opt_outs"
   TO authenticated
   USING (true);
 
--- Users can only insert their own opt-outs
-CREATE POLICY "Users can insert own opt_out"
+-- The actor (opted_out_by) can insert opt-outs for themselves or others
+CREATE POLICY "Users can insert opt_out as actor"
   ON public.opt_outs FOR INSERT
   TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid() = opted_out_by);
 
--- Users can only delete their own opt-outs
+-- Users can delete their own opt-outs (opt back in)
 CREATE POLICY "Users can delete own opt_out"
   ON public.opt_outs FOR DELETE
   TO authenticated
   USING (auth.uid() = user_id);
+
+-- The actor who created the opt-out can undo it
+CREATE POLICY "Actor can delete opt_out they created"
+  ON public.opt_outs FOR DELETE
+  TO authenticated
+  USING (auth.uid() = opted_out_by);
 
 
 -- ============================================================

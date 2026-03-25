@@ -27,7 +27,7 @@ export default async function DashboardPage() {
         .order('created_at', { ascending: true }),
       supabase
         .from('opt_outs')
-        .select('id, user_id, start_date, end_date')
+        .select('id, user_id, opted_out_by, start_date, end_date')
         .lte('start_date', today)
         .gte('end_date', today),
     ])
@@ -41,7 +41,11 @@ export default async function DashboardPage() {
           intakeLogs: intakeLogs ?? [],
           teamUsers: teamUsers ?? [],
           myEntries: myEntries ?? [],
-          todayOptOuts: (todayOptOuts ?? []).map((o) => ({ id: o.id, user_id: o.user_id })),
+          todayOptOuts: (todayOptOuts ?? []).map((o) => ({
+            id: o.id,
+            user_id: o.user_id,
+            opted_out_by: o.opted_out_by as string | null,
+          })),
         }}
       />
     </main>
