@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback, useTransition } from 'react'
+import { useEffect, useState, useMemo, useCallback, useTransition, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getDisplayName } from '@/lib/utils'
 import { optOutUser, undoTeamOptOut } from '@/app/dashboard/actions'
@@ -33,6 +33,13 @@ type OptOut = {
   opted_out_by: string | null
 }
 
+type DailyGoalOverride = {
+  id: string
+  user_id: string
+  date: string
+  daily_goal: number
+}
+
 type PersonalEntry = {
   id: string
   ounces: number
@@ -47,6 +54,7 @@ type Props = {
     teamUsers: TeamUser[]
     myEntries: PersonalEntry[]
     todayOptOuts: OptOut[]
+    todayOverrides: DailyGoalOverride[]
   }
 }
 
@@ -59,6 +67,7 @@ export default function DashboardRealtime({ initialData }: Props) {
   const [intakeLogs, setIntakeLogs] = useState(initialData.intakeLogs)
   const [myEntries, setMyEntries] = useState(initialData.myEntries)
   const [todayOptOuts, setTodayOptOuts] = useState(initialData.todayOptOuts)
+  const [todayOverrides, setTodayOverrides] = useState(initialData.todayOverrides)
   const [wowQueue, setWowQueue] = useState<WowEvent[]>([])
   const [isPending, startTransition] = useTransition()
 
@@ -75,19 +84,26 @@ export default function DashboardRealtime({ initialData }: Props) {
     return () => clearInterval(interval)
   }, [isPastCutoff])
 
-  // Build a lookup for user display names (for wow overlay)
-  const userNameMap = useMemo(() => {
+  // Keep a ref for user display names (for wow overlay) so intake handler
+  // doesn't depend on it and won't cause subscription reconnects on profile changes
+  const userNameMapRef = useRef<Record<string, string>>({})
+  useEffect(() => {
     const map: Record<string, string> = {}
     for (const u of teamUsers) {
       map[u.id] = getDisplayName(u)
     }
-    return map
+    userNameMapRef.current = map
   }, [teamUsers])
 
   // Compute all derived dashboard data
   const dashboardData = useMemo(() => {
     const optOutMap = new Map(todayOptOuts.map((o) => [o.user_id, o]))
     const currentUserOptOut = optOutMap.get(currentUserId) ?? null
+
+    // Build override lookup: user_id -> override row
+    const overrideMap = new Map(todayOverrides.map((o) => [o.user_id, o]))
+    const getEffectiveGoal = (u: TeamUser) =>
+      overrideMap.get(u.id)?.daily_goal ?? u.daily_goal ?? 32
 
     const userTotals: Record<string, number> = {}
     for (const row of intakeLogs) {
@@ -96,11 +112,13 @@ export default function DashboardRealtime({ initialData }: Props) {
 
     const currentUser = teamUsers.find((u) => u.id === currentUserId)
     const personalTotal = userTotals[currentUserId] ?? 0
-    const personalGoal = currentUser?.daily_goal ?? 32
+    const personalOverride = overrideMap.get(currentUserId)
+    const personalGoal = currentUser ? getEffectiveGoal(currentUser) : 32
+    const personalBaseGoal = currentUser?.daily_goal ?? 32
 
     const activeUsers = teamUsers.filter((u) => !optOutMap.has(u.id))
     const teamTotal = activeUsers.reduce((s, u) => s + (userTotals[u.id] ?? 0), 0)
-    const teamGoal = activeUsers.reduce((sum, u) => sum + (u.daily_goal ?? 32), 0)
+    const teamGoal = activeUsers.reduce((sum, u) => sum + getEffectiveGoal(u), 0)
 
     const userList = teamUsers
       .map((u) => {
@@ -109,7 +127,7 @@ export default function DashboardRealtime({ initialData }: Props) {
           id: u.id,
           displayName: getDisplayName(u),
           ounces: userTotals[u.id] ?? 0,
-          dailyGoal: u.daily_goal ?? 32,
+          dailyGoal: getEffectiveGoal(u),
           avatarUrl: u.avatar_url ?? null,
           email: u.email,
           isOptedOut: !!optOut,
@@ -125,13 +143,16 @@ export default function DashboardRealtime({ initialData }: Props) {
     return {
       personalTotal,
       personalGoal,
+      personalBaseGoal,
+      personalOverrideGoal: personalOverride?.daily_goal ?? null,
+      personalOverrideId: personalOverride?.id ?? null,
       teamTotal,
       teamGoal,
       activeUsers,
       userList,
       currentUserOptOut,
     }
-  }, [intakeLogs, todayOptOuts, teamUsers, currentUserId])
+  }, [intakeLogs, todayOptOuts, todayOverrides, teamUsers, currentUserId])
 
   // Real-time event handlers
   const handleIntakeChange = useCallback(
@@ -152,7 +173,7 @@ export default function DashboardRealtime({ initialData }: Props) {
             ...prev,
             {
               id: row.id,
-              userName: userNameMap[row.user_id] ?? 'Someone',
+              userName: userNameMapRef.current[row.user_id] ?? 'Someone',
               ounces: row.ounces,
               gif: pickRandomGif(),
             },
@@ -178,7 +199,7 @@ export default function DashboardRealtime({ initialData }: Props) {
         }
       }
     },
-    [currentUserId, userNameMap]
+    [currentUserId]
   )
 
   const handleOptOutChange = useCallback(
@@ -198,6 +219,32 @@ export default function DashboardRealtime({ initialData }: Props) {
         const old = payload.old as unknown as OptOut
         if (old.id) {
           setTodayOptOuts((prev) => prev.filter((o) => o.id !== old.id))
+        }
+      }
+    },
+    [today]
+  )
+
+  const handleOverrideChange = useCallback(
+    (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
+      if (payload.eventType === 'INSERT') {
+        const row = payload.new as unknown as DailyGoalOverride
+        if (row.date === today) {
+          setTodayOverrides((prev) => [...prev.filter((o) => o.user_id !== row.user_id), row])
+        }
+      }
+
+      if (payload.eventType === 'UPDATE') {
+        const row = payload.new as unknown as DailyGoalOverride
+        if (row.date === today) {
+          setTodayOverrides((prev) => prev.map((o) => (o.id === row.id ? row : o)))
+        }
+      }
+
+      if (payload.eventType === 'DELETE') {
+        const old = payload.old as unknown as DailyGoalOverride
+        if (old.id) {
+          setTodayOverrides((prev) => prev.filter((o) => o.id !== old.id))
         }
       }
     },
@@ -259,6 +306,16 @@ export default function DashboardRealtime({ initialData }: Props) {
         {
           event: '*',
           schema: 'public',
+          table: 'daily_goal_overrides',
+          filter: `date=eq.${today}`,
+        },
+        handleOverrideChange
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
           table: 'users',
         },
         handleUserChange
@@ -268,7 +325,7 @@ export default function DashboardRealtime({ initialData }: Props) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [today, handleIntakeChange, handleOptOutChange, handleUserChange])
+  }, [today, handleIntakeChange, handleOptOutChange, handleOverrideChange, handleUserChange])
 
   const handleOptOutUser = useCallback(
     (targetUserId: string) => {
@@ -294,6 +351,9 @@ export default function DashboardRealtime({ initialData }: Props) {
       <WaterInputCard
         personalTotal={dashboardData.personalTotal}
         dailyGoal={dashboardData.personalGoal}
+        baseGoal={dashboardData.personalBaseGoal}
+        overrideGoal={dashboardData.personalOverrideGoal}
+        overrideId={dashboardData.personalOverrideId}
         entries={myEntries}
         isOptedOut={!!dashboardData.currentUserOptOut}
         optOutId={dashboardData.currentUserOptOut?.id ?? null}

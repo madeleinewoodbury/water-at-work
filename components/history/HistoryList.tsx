@@ -8,16 +8,16 @@ type DayData = {
   date: string
   total: number
   entries: { ounces: number; created_at: string }[]
+  effectiveGoal: number
 }
 
 type Props = {
   days: DayData[]
-  dailyGoal: number
 }
 
 const PAGE_SIZE = 10
 
-export default function HistoryList({ days, dailyGoal }: Props) {
+export default function HistoryList({ days }: Props) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -54,7 +54,7 @@ export default function HistoryList({ days, dailyGoal }: Props) {
             key={day.date}
             date={day.date}
             total={day.total}
-            dailyGoal={dailyGoal}
+            dailyGoal={day.effectiveGoal}
             entries={day.entries}
           />
         ))}

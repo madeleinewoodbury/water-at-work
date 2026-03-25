@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import Image from 'next/image'
 
-const WOW_GIFS = ['/wow/wow-1.gif', '/wow/wow-2.gif', '/wow/wow-3.gif', '/wow/wow-4.gif', '/wow/wow-5.gif']
+const WOW_GIFS = ['/wow/wow-1-optimized.gif', '/wow/wow-2-optimized.gif', '/wow/wow-3-optimized.gif', '/wow/wow-4-optimized.gif', '/wow/wow-5-optimized.gif']
 
 export type WowEvent = {
   id: string

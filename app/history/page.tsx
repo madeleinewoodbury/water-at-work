@@ -45,19 +45,25 @@ export default async function HistoryPage({
   }
 
   if (tab === 'team') {
-    const [{ data: allLogs }, { data: allOptOuts }, { data: allUsers }] = await Promise.all([
-      supabase
-        .from('intake_logs')
-        .select('user_id, date, ounces')
-        .gte('date', fromDate)
-        .lte('date', toDate),
-      supabase
-        .from('opt_outs')
-        .select('user_id, start_date, end_date')
-        .lte('start_date', toDate)
-        .gte('end_date', fromDate),
-      supabase.from('users').select('id, email, display_name, daily_goal'),
-    ])
+    const [{ data: allLogs }, { data: allOptOuts }, { data: allUsers }, { data: allOverrides }] =
+      await Promise.all([
+        supabase
+          .from('intake_logs')
+          .select('user_id, date, ounces')
+          .gte('date', fromDate)
+          .lte('date', toDate),
+        supabase
+          .from('opt_outs')
+          .select('user_id, start_date, end_date')
+          .lte('start_date', toDate)
+          .gte('end_date', fromDate),
+        supabase.from('users').select('id, email, display_name, daily_goal'),
+        supabase
+          .from('daily_goal_overrides')
+          .select('user_id, date, daily_goal')
+          .gte('date', fromDate)
+          .lte('date', toDate),
+      ])
 
     // Build opt-out range map per user
     const optOutMap = new Map<string, { start: string; end: string }[]>()
@@ -69,6 +75,21 @@ export default async function HistoryPage({
 
     function isOptedOut(userId: string, date: string): boolean {
       return (optOutMap.get(userId) ?? []).some((r) => r.start <= date && r.end >= date)
+    }
+
+    // Build override lookup: date -> user_id -> override goal
+    const overrideLookup = new Map<string, Map<string, number>>()
+    for (const o of allOverrides ?? []) {
+      let dateMap = overrideLookup.get(o.date)
+      if (!dateMap) {
+        dateMap = new Map()
+        overrideLookup.set(o.date, dateMap)
+      }
+      dateMap.set(o.user_id, o.daily_goal)
+    }
+
+    function getEffectiveGoal(userId: string, date: string, baseGoal: number): number {
+      return overrideLookup.get(date)?.get(userId) ?? baseGoal
     }
 
     // Group logs by date
@@ -84,7 +105,10 @@ export default async function HistoryPage({
     const teamDays = Array.from(logsByDate.entries())
       .map(([date, logs]) => {
         const activeUsers = (allUsers ?? []).filter((u) => !isOptedOut(u.id, date))
-        const teamGoal = activeUsers.reduce((s, u) => s + (u.daily_goal ?? 32), 0)
+        const teamGoal = activeUsers.reduce(
+          (s, u) => s + getEffectiveGoal(u.id, date, u.daily_goal ?? 32),
+          0
+        )
 
         const userTotals: Record<string, number> = {}
         for (const log of logs) {
@@ -125,7 +149,7 @@ export default async function HistoryPage({
     )
   }
 
-  const [{ data: logs }, { data: profile }] = await Promise.all([
+  const [{ data: logs }, { data: profile }, { data: myOverrides }] = await Promise.all([
     supabase
       .from('intake_logs')
       .select('date, ounces, created_at')
@@ -139,9 +163,21 @@ export default async function HistoryPage({
       .select('daily_goal')
       .eq('id', user.id)
       .single(),
+    supabase
+      .from('daily_goal_overrides')
+      .select('date, daily_goal')
+      .eq('user_id', user.id)
+      .gte('date', fromDate)
+      .lte('date', toDate),
   ])
 
   const dailyGoal = profile?.daily_goal ?? 32
+
+  // Build per-day override lookup
+  const overridesByDate = new Map(
+    (myOverrides ?? []).map((o) => [o.date, o.daily_goal])
+  )
+  const getEffectiveGoal = (date: string) => overridesByDate.get(date) ?? dailyGoal
 
   // Group logs by date
   const dayMap = new Map<
@@ -163,12 +199,17 @@ export default async function HistoryPage({
   }
 
   const days = Array.from(dayMap.entries())
-    .map(([date, data]) => ({ date, total: data.total, entries: data.entries }))
+    .map(([date, data]) => ({
+      date,
+      total: data.total,
+      entries: data.entries,
+      effectiveGoal: getEffectiveGoal(date),
+    }))
     .filter((d) => !excludeWeekends || !isWeekend(d.date))
 
   // Summary stats
   const totalOunces = days.reduce((sum, d) => sum + d.total, 0)
-  const daysMetGoal = days.filter((d) => d.total >= dailyGoal).length
+  const daysMetGoal = days.filter((d) => d.total >= d.effectiveGoal).length
   const avgPerDay = days.length > 0 ? Math.round(totalOunces / days.length) : 0
 
   return (
@@ -181,9 +222,8 @@ export default async function HistoryPage({
         daysTracked={days.length}
         daysMetGoal={daysMetGoal}
         avgPerDay={avgPerDay}
-        dailyGoal={dailyGoal}
       />
-      <HistoryList days={days} dailyGoal={dailyGoal} />
+      <HistoryList days={days} />
     </main>
   )
 }
