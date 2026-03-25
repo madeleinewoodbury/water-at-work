@@ -34,6 +34,7 @@ type Props = {
   entries: Entry[]
   isOptedOut: boolean
   optOutId: string | null
+  optedOutByAnother: boolean
 }
 
 function formatTime(ts: string) {
@@ -49,6 +50,7 @@ export default function WaterInputCard({
   entries,
   isOptedOut,
   optOutId,
+  optedOutByAnother,
 }: Props) {
   const [ounces, setOunces] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -222,7 +224,7 @@ export default function WaterInputCard({
       <CardContent className="flex flex-col gap-3">
         {isOptedOut && (
           <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-            <span>You are sitting out today.</span>
+            <span>{optedOutByAnother ? 'A teammate sat you out for today.' : 'You are sitting out today.'}</span>
             <button
               type="button"
               disabled={isPending}

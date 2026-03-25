@@ -227,6 +227,7 @@ export async function addOptOut(
 
   const { error } = await supabase.from('opt_outs').insert({
     user_id: user.id,
+    opted_out_by: user.id,
     start_date: startDate,
     end_date: endDate,
   })
