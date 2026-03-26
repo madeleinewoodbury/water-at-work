@@ -41,21 +41,41 @@ export default async function DashboardPage() {
       .eq('date', today),
   ])
 
+  const intakeLogsNormalized = (intakeLogs ?? []).map((log) => ({
+    ...log,
+    ounces: Number(log.ounces),
+  }))
+
+  const teamUsersNormalized = (teamUsers ?? []).map((teamUser) => ({
+    ...teamUser,
+    daily_goal: Number(teamUser.daily_goal),
+  }))
+
+  const myEntriesNormalized = (myEntries ?? []).map((entry) => ({
+    ...entry,
+    ounces: Number(entry.ounces),
+  }))
+
+  const todayOverridesNormalized = (todayOverrides ?? []).map((override) => ({
+    ...override,
+    daily_goal: Number(override.daily_goal),
+  }))
+
   return (
     <main className="mx-auto grid w-full max-w-[1200px] gap-4 px-6 py-6 md:grid-cols-2">
       <DashboardRealtime
         initialData={{
           currentUserId: user.id,
           today,
-          intakeLogs: intakeLogs ?? [],
-          teamUsers: teamUsers ?? [],
-          myEntries: myEntries ?? [],
+          intakeLogs: intakeLogsNormalized,
+          teamUsers: teamUsersNormalized,
+          myEntries: myEntriesNormalized,
           todayOptOuts: (todayOptOuts ?? []).map((o) => ({
             id: o.id,
             user_id: o.user_id,
             opted_out_by: o.opted_out_by as string | null,
           })),
-          todayOverrides: todayOverrides ?? [],
+          todayOverrides: todayOverridesNormalized,
         }}
       />
     </main>

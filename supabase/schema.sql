@@ -35,7 +35,7 @@ CREATE TABLE public.users (
   id           UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email        TEXT        NOT NULL,
   display_name TEXT,
-  daily_goal   INTEGER     NOT NULL DEFAULT 32,
+  daily_goal   NUMERIC(6,1) NOT NULL DEFAULT 32.0,
   avatar_url   TEXT,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -82,7 +82,7 @@ CREATE TABLE public.intake_logs (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   date       DATE        NOT NULL DEFAULT current_date,
-  ounces     INTEGER     NOT NULL CHECK (ounces > 0),
+  ounces     NUMERIC(6,1) NOT NULL CHECK (ounces > 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -204,7 +204,7 @@ CREATE TABLE public.daily_goal_overrides (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   date       DATE        NOT NULL,
-  daily_goal INTEGER     NOT NULL CHECK (daily_goal > 0),
+  daily_goal NUMERIC(6,1) NOT NULL CHECK (daily_goal > 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(user_id, date)
 );

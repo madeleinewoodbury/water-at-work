@@ -7,6 +7,10 @@ import { createClient } from '@/lib/supabase/server'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const MAX_SIZE = 2 * 1024 * 1024
 
+function roundToOneDecimal(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
 export async function completeOnboarding(formData: FormData) {
   const supabase = await createClient()
   const {
@@ -26,6 +30,7 @@ export async function completeOnboarding(formData: FormData) {
   if (!rawGoal || !Number.isFinite(dailyGoal) || dailyGoal <= 0) {
     redirect('/onboarding?error=Enter+a+valid+goal+greater+than+0')
   }
+  const normalizedGoal = roundToOneDecimal(dailyGoal)
 
   // Determine avatar_url
   let avatarUrl: string | null = null
@@ -61,7 +66,7 @@ export async function completeOnboarding(formData: FormData) {
     .from('users')
     .update({
       display_name: displayName,
-      daily_goal: Math.round(dailyGoal),
+      daily_goal: normalizedGoal,
       avatar_url: avatarUrl,
     })
     .eq('id', user.id)

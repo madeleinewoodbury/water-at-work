@@ -182,6 +182,7 @@ export default function OnboardingForm({
           type="number"
           required
           min={1}
+          step="0.1"
           defaultValue={32}
         />
         <p className="text-xs text-muted-foreground">

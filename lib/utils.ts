@@ -9,10 +9,14 @@ export function getDisplayName(user: { display_name?: string | null; email: stri
   return user.display_name || user.email.split('@')[0]
 }
 
+function formatOneDecimal(value: number): string {
+  return value % 1 === 0 ? String(value) : value.toFixed(1)
+}
+
 export function formatWaterAmount(oz: number): string {
   if (oz >= 128) {
     const gal = oz / 128
-    return `${gal % 1 === 0 ? gal : gal.toFixed(1)} gal`
+    return `${formatOneDecimal(gal)} gal`
   }
-  return `${oz} oz`
+  return `${formatOneDecimal(oz)} oz`
 }
