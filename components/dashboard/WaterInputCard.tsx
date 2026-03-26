@@ -21,7 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-const PRESETS = [4, 8, 12, 16, 24]
+const PRESETS = [2, 4, 8, 12, 16]
 
 type Entry = { id: string; ounces: number; created_at: string }
 
@@ -53,6 +53,7 @@ export default function WaterInputCard({
   optedOutByAnother,
 }: Props) {
   const [ounces, setOunces] = useState('')
+  const [isCustomOpen, setIsCustomOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const formRef = useRef<HTMLFormElement>(null)
@@ -75,6 +76,23 @@ export default function WaterInputCard({
       } else {
         setError(null)
         setOunces('')
+        setIsCustomOpen(false)
+        formRef.current?.reset()
+      }
+    })
+  }
+
+  function handleQuickLog(oz: number) {
+    const fd = new FormData()
+    fd.set('ounces', String(oz))
+    startTransition(async () => {
+      const result = await logIntake(null, fd)
+      if (result?.error) {
+        setError(result.error)
+      } else {
+        setError(null)
+        setOunces('')
+        setIsCustomOpen(false)
         formRef.current?.reset()
       }
     })
@@ -236,34 +254,51 @@ export default function WaterInputCard({
           </div>
         )}
         <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
             {PRESETS.map((oz) => (
               <Button
                 key={oz}
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setOunces(String(oz))}
-                aria-pressed={ounces === String(oz)}
+                disabled={isPending}
+                onClick={() => handleQuickLog(oz)}
+                className="w-full sm:w-auto"
               >
                 {oz} oz
               </Button>
             ))}
-          </div>
-
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              name="ounces"
-              placeholder="Custom amount (oz)"
-              min={1}
-              value={ounces}
-              onChange={(e) => setOunces(e.target.value)}
-            />
-            <Button type="submit" disabled={isPending || !ounces}>
-              {isPending ? 'Logging…' : 'Log'}
+            <Button
+              type="button"
+              variant={isCustomOpen ? 'default' : 'outline'}
+              size="sm"
+              disabled={isPending}
+              onClick={() => {
+                setIsCustomOpen((prev) => !prev)
+                setError(null)
+              }}
+              aria-pressed={isCustomOpen}
+              className="w-full sm:w-auto"
+            >
+              Custom
             </Button>
           </div>
+
+          {isCustomOpen && (
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                name="ounces"
+                placeholder="Custom amount (oz)"
+                min={1}
+                value={ounces}
+                onChange={(e) => setOunces(e.target.value)}
+              />
+              <Button type="submit" disabled={isPending || !ounces}>
+                {isPending ? 'Logging…' : 'Log'}
+              </Button>
+            </div>
+          )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
         </form>
