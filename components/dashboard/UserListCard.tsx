@@ -34,6 +34,8 @@ type Props = {
 
 const WORKDAY_START = 9
 const WORKDAY_HOURS = 8
+const ABOVE_AND_BEYOND_MULTIPLIER = 1.1
+const FLOODED_OVER_GOAL_MULTIPLIER = 1.2
 
 function getCompletedHours(now: Date): number {
   const hour = now.getHours()
@@ -50,8 +52,14 @@ function getStatusIndicator(ounces: number, dailyGoal: number, completedHours: n
   const target = getHourlyTarget(dailyGoal, completedHours)
   const aheadTarget = getHourlyTarget(dailyGoal, Math.min(completedHours + 2, WORKDAY_HOURS))
 
-  if (ounces >= dailyGoal && ounces > aheadTarget)
+  if (dailyGoal > 0 && ounces >= dailyGoal * FLOODED_OVER_GOAL_MULTIPLIER)
     return { emoji: '🌊', label: 'flooded!', colorClass: 'text-orange-700 dark:text-orange-400' }
+  if (dailyGoal > 0 && ounces >= dailyGoal * ABOVE_AND_BEYOND_MULTIPLIER)
+    return {
+      emoji: '🚀',
+      label: 'above & beyond',
+      colorClass: 'text-emerald-700 dark:text-emerald-400',
+    }
   if (ounces >= dailyGoal)
     return { emoji: '🏆', label: 'crushed it!', colorClass: 'text-green-700 dark:text-green-400' }
   if (ounces > aheadTarget)
