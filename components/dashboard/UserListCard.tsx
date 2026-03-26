@@ -1,6 +1,6 @@
 'use client'
 
-import { cn } from '@/lib/utils'
+import { cn, formatOneDecimal } from '@/lib/utils'
 import { UserX, Undo2 } from 'lucide-react'
 import {
   Card,
@@ -162,7 +162,7 @@ export default function UserListCard({
                 )}
 
                 <span className="shrink-0 tabular-nums text-sm">
-                  {user.isOptedOut ? '—' : `${user.ounces} / ${user.dailyGoal} oz`}
+                  {user.isOptedOut ? '—' : `${formatOneDecimal(user.ounces)} / ${formatOneDecimal(user.dailyGoal)} oz`}
                 </span>
               </li>
             )
