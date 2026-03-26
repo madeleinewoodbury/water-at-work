@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { getTeamCelebrationText, getTeamProgressPercent } from '@/lib/team-status'
 
 type TeamWaterSVGProps = {
   teamTotal: number
@@ -48,18 +49,11 @@ const BUBBLES = [
   { cx: CENTER_X, r: 2, duration: 3.2, delay: 0.6 },
 ]
 
-function getCelebrationText(percentage: number) {
-  if (percentage >= 120) return `${percentage}% — unstoppable!`
-  if (percentage > 100) return `${percentage}% — above and beyond!`
-  if (percentage === 100) return 'Goal reached!'
-  return `${percentage}% of team goal`
-}
-
 export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps) {
   const [mounted, setMounted] = useState(false)
 
   const fillPercent = teamGoal > 0 ? teamTotal / teamGoal : 0
-  const percentage = teamGoal > 0 ? Math.round((teamTotal / teamGoal) * 100) : 0
+  const percentage = getTeamProgressPercent(teamTotal, teamGoal)
   const goalReached = percentage >= 100
 
   // Trigger entrance animation after mount
@@ -223,7 +217,7 @@ export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps)
           {teamTotal} <span className="text-base font-normal text-muted-foreground">/ {teamGoal} oz</span>
         </p>
         <p className={`text-sm ${goalReached ? 'font-medium text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
-          {getCelebrationText(percentage)}
+          {getTeamCelebrationText(percentage)}
         </p>
       </div>
     </div>

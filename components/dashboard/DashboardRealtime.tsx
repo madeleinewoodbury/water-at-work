@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useTransition, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { getTeamProgressPercent, getTeamStatus } from '@/lib/team-status'
 import { getDisplayName } from '@/lib/utils'
 import { optOutUser, undoTeamOptOut } from '@/app/dashboard/actions'
 import WaterInputCard from '@/components/dashboard/WaterInputCard'
@@ -73,16 +74,18 @@ export default function DashboardRealtime({ initialData }: Props) {
 
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
 
-  const [isPastCutoff, setIsPastCutoff] = useState(() => new Date().getHours() >= CUTOFF_HOUR)
+  const [currentHour, setCurrentHour] = useState(() => new Date().getHours())
+  const [isPastCutoff, setIsPastCutoff] = useState(() => currentHour >= CUTOFF_HOUR)
 
   useEffect(() => {
-    if (isPastCutoff) return
     const check = () => {
-      if (new Date().getHours() >= CUTOFF_HOUR) setIsPastCutoff(true)
+      const hour = new Date().getHours()
+      setCurrentHour((prev) => (prev === hour ? prev : hour))
+      setIsPastCutoff((prev) => prev || hour >= CUTOFF_HOUR)
     }
     const interval = setInterval(check, 60_000)
     return () => clearInterval(interval)
-  }, [isPastCutoff])
+  }, [])
 
   // Keep a ref for user display names (for wow overlay) so intake handler
   // doesn't depend on it and won't cause subscription reconnects on profile changes
@@ -119,6 +122,8 @@ export default function DashboardRealtime({ initialData }: Props) {
     const activeUsers = teamUsers.filter((u) => !optOutMap.has(u.id))
     const teamTotal = activeUsers.reduce((s, u) => s + (userTotals[u.id] ?? 0), 0)
     const teamGoal = activeUsers.reduce((sum, u) => sum + getEffectiveGoal(u), 0)
+    const teamPercent = getTeamProgressPercent(teamTotal, teamGoal)
+    const teamStatus = getTeamStatus(teamPercent, currentHour)
 
     const userList = teamUsers
       .map((u) => {
@@ -148,11 +153,13 @@ export default function DashboardRealtime({ initialData }: Props) {
       personalOverrideId: personalOverride?.id ?? null,
       teamTotal,
       teamGoal,
+      teamPercent,
+      teamStatus,
       activeUsers,
       userList,
       currentUserOptOut,
     }
-  }, [intakeLogs, todayOptOuts, todayOverrides, teamUsers, currentUserId])
+  }, [intakeLogs, todayOptOuts, todayOverrides, teamUsers, currentUserId, currentHour])
 
   // Real-time event handlers
   const handleIntakeChange = useCallback(
@@ -365,6 +372,8 @@ export default function DashboardRealtime({ initialData }: Props) {
       />
       <TeamProgressCard
         teamTotal={dashboardData.teamTotal}
+        teamPercent={dashboardData.teamPercent}
+        teamStatus={dashboardData.teamStatus}
         participantCount={dashboardData.activeUsers.length}
         totalMemberCount={teamUsers.length}
         teamGoal={dashboardData.teamGoal}
