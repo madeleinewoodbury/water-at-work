@@ -290,7 +290,8 @@ export default function WaterInputCard({
                 type="number"
                 name="ounces"
                 placeholder="Custom amount (oz)"
-                min={1}
+                min={0.1}
+                step="0.1"
                 value={ounces}
                 onChange={(e) => setOunces(e.target.value)}
               />
@@ -312,7 +313,8 @@ export default function WaterInputCard({
                   <li key={entry.id} className="flex items-center gap-2 py-1">
                     <Input
                       type="number"
-                      min={1}
+                      min={0.1}
+                      step="0.1"
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       className="h-7 w-20 text-sm"

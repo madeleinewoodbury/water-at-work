@@ -31,12 +31,13 @@ export default async function ProfilePage() {
   ])
 
   const email = profile?.email ?? user.email ?? ''
+  const currentGoal = Number(profile?.daily_goal ?? 32)
 
   return (
     <main className="mx-auto w-full max-w-[1200px] px-6 py-6">
       <h1 className="mb-4 text-2xl font-bold tracking-tight">Profile</h1>
       <div className="grid gap-4 md:grid-cols-2">
-        <DailyGoalForm currentGoal={profile?.daily_goal ?? 32} />
+        <DailyGoalForm currentGoal={currentGoal} />
         <ProfileIdentityCard
           currentAvatarUrl={profile?.avatar_url ?? null}
           email={email}

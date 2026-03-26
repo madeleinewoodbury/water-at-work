@@ -85,7 +85,7 @@ export default async function HistoryPage({
         dateMap = new Map()
         overrideLookup.set(o.date, dateMap)
       }
-      dateMap.set(o.user_id, o.daily_goal)
+      dateMap.set(o.user_id, Number(o.daily_goal))
     }
 
     function getEffectiveGoal(userId: string, date: string, baseGoal: number): number {
@@ -106,14 +106,14 @@ export default async function HistoryPage({
       .map(([date, logs]) => {
         const activeUsers = (allUsers ?? []).filter((u) => !isOptedOut(u.id, date))
         const teamGoal = activeUsers.reduce(
-          (s, u) => s + getEffectiveGoal(u.id, date, u.daily_goal ?? 32),
+          (s, u) => s + getEffectiveGoal(u.id, date, Number(u.daily_goal ?? 32)),
           0
         )
 
         const userTotals: Record<string, number> = {}
         for (const log of logs) {
           if (!isOptedOut(log.user_id, date)) {
-            userTotals[log.user_id] = (userTotals[log.user_id] ?? 0) + log.ounces
+            userTotals[log.user_id] = (userTotals[log.user_id] ?? 0) + Number(log.ounces)
           }
         }
         const teamTotal = Object.values(userTotals).reduce((s, n) => s + n, 0)
@@ -171,11 +171,11 @@ export default async function HistoryPage({
       .lte('date', toDate),
   ])
 
-  const dailyGoal = profile?.daily_goal ?? 32
+  const dailyGoal = Number(profile?.daily_goal ?? 32)
 
   // Build per-day override lookup
   const overridesByDate = new Map(
-    (myOverrides ?? []).map((o) => [o.date, o.daily_goal])
+    (myOverrides ?? []).map((o) => [o.date, Number(o.daily_goal)])
   )
   const getEffectiveGoal = (date: string) => overridesByDate.get(date) ?? dailyGoal
 
@@ -186,14 +186,15 @@ export default async function HistoryPage({
   >()
 
   for (const log of logs ?? []) {
+    const ounces = Number(log.ounces)
     const existing = dayMap.get(log.date)
     if (existing) {
-      existing.total += log.ounces
-      existing.entries.push({ ounces: log.ounces, created_at: log.created_at })
+      existing.total += ounces
+      existing.entries.push({ ounces, created_at: log.created_at })
     } else {
       dayMap.set(log.date, {
-        total: log.ounces,
-        entries: [{ ounces: log.ounces, created_at: log.created_at }],
+        total: ounces,
+        entries: [{ ounces, created_at: log.created_at }],
       })
     }
   }

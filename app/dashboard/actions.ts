@@ -4,6 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 
 type ActionState = { error: string } | null
 
+function roundToOneDecimal(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
 export async function logIntake(
   _prevState: ActionState,
   formData: FormData
@@ -20,13 +24,14 @@ export async function logIntake(
   if (!raw || !Number.isFinite(ounces) || ounces <= 0) {
     return { error: 'Enter a valid amount greater than 0' }
   }
+  const normalizedOunces = roundToOneDecimal(ounces)
 
   const today = new Date().toISOString().split('T')[0]
 
   const { error } = await supabase.from('intake_logs').insert({
     user_id: user.id,
     date: today,
-    ounces: Math.round(ounces),
+    ounces: normalizedOunces,
   })
 
   if (error) return { error: error.message }
@@ -53,10 +58,11 @@ export async function updateIntake(
   if (!raw || !Number.isFinite(ounces) || ounces <= 0) {
     return { error: 'Enter a valid amount greater than 0' }
   }
+  const normalizedOunces = roundToOneDecimal(ounces)
 
   const { error } = await supabase
     .from('intake_logs')
-    .update({ ounces: Math.round(ounces), updated_at: new Date().toISOString() })
+    .update({ ounces: normalizedOunces, updated_at: new Date().toISOString() })
     .eq('id', id)
     .eq('user_id', user.id)
 
@@ -232,6 +238,7 @@ export async function setDailyGoalOverride(
   if (!raw || !Number.isFinite(dailyGoal) || dailyGoal <= 0) {
     return { error: 'Enter a valid goal greater than 0' }
   }
+  const normalizedGoal = roundToOneDecimal(dailyGoal)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -239,7 +246,7 @@ export async function setDailyGoalOverride(
     {
       user_id: user.id,
       date: today,
-      daily_goal: Math.round(dailyGoal),
+      daily_goal: normalizedGoal,
     },
     { onConflict: 'user_id,date' }
   )

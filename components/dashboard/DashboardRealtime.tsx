@@ -165,7 +165,8 @@ export default function DashboardRealtime({ initialData }: Props) {
   const handleIntakeChange = useCallback(
     (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
       if (payload.eventType === 'INSERT') {
-        const row = payload.new as unknown as IntakeLog
+        const rawRow = payload.new as unknown as IntakeLog
+        const row = { ...rawRow, ounces: Number(rawRow.ounces) }
         setIntakeLogs((prev) => [...prev, row])
         if (row.user_id === currentUserId) {
           setMyEntries((prev) => [
@@ -189,7 +190,8 @@ export default function DashboardRealtime({ initialData }: Props) {
       }
 
       if (payload.eventType === 'UPDATE') {
-        const row = payload.new as unknown as IntakeLog
+        const rawRow = payload.new as unknown as IntakeLog
+        const row = { ...rawRow, ounces: Number(rawRow.ounces) }
         setIntakeLogs((prev) => prev.map((l) => (l.id === row.id ? row : l)))
         if (row.user_id === currentUserId) {
           setMyEntries((prev) =>
@@ -235,14 +237,16 @@ export default function DashboardRealtime({ initialData }: Props) {
   const handleOverrideChange = useCallback(
     (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
       if (payload.eventType === 'INSERT') {
-        const row = payload.new as unknown as DailyGoalOverride
+        const rawRow = payload.new as unknown as DailyGoalOverride
+        const row = { ...rawRow, daily_goal: Number(rawRow.daily_goal) }
         if (row.date === today) {
           setTodayOverrides((prev) => [...prev.filter((o) => o.user_id !== row.user_id), row])
         }
       }
 
       if (payload.eventType === 'UPDATE') {
-        const row = payload.new as unknown as DailyGoalOverride
+        const rawRow = payload.new as unknown as DailyGoalOverride
+        const row = { ...rawRow, daily_goal: Number(rawRow.daily_goal) }
         if (row.date === today) {
           setTodayOverrides((prev) => prev.map((o) => (o.id === row.id ? row : o)))
         }
@@ -261,12 +265,14 @@ export default function DashboardRealtime({ initialData }: Props) {
   const handleUserChange = useCallback(
     (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
       if (payload.eventType === 'UPDATE') {
-        const updated = payload.new as unknown as TeamUser
+        const rawUpdated = payload.new as unknown as TeamUser
+        const updated = { ...rawUpdated, daily_goal: Number(rawUpdated.daily_goal) }
         setTeamUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
       }
 
       if (payload.eventType === 'INSERT') {
-        const newUser = payload.new as unknown as TeamUser
+        const rawNewUser = payload.new as unknown as TeamUser
+        const newUser = { ...rawNewUser, daily_goal: Number(rawNewUser.daily_goal) }
         setTeamUsers((prev) => {
           if (prev.some((u) => u.id === newUser.id)) return prev
           return [...prev, newUser]

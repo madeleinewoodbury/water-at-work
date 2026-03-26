@@ -48,6 +48,7 @@ export default function DailyGoalForm({ currentGoal }: Props) {
               name="daily_goal"
               type="number"
               min={1}
+              step="0.1"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
             />

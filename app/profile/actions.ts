@@ -10,6 +10,10 @@ type ActionState = { error?: string; success?: string } | null
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const MAX_SIZE = 2 * 1024 * 1024 // 2MB
 
+function roundToOneDecimal(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
 export async function updateAvatar(
   _prevState: ActionState,
   formData: FormData
@@ -122,10 +126,11 @@ export async function updateDailyGoal(
   if (!raw || !Number.isFinite(dailyGoal) || dailyGoal <= 0) {
     return { error: 'Enter a valid goal greater than 0' }
   }
+  const normalizedGoal = roundToOneDecimal(dailyGoal)
 
   const { error } = await supabase
     .from('users')
-    .update({ daily_goal: Math.round(dailyGoal) })
+    .update({ daily_goal: normalizedGoal })
     .eq('id', user.id)
 
   if (error) return { error: error.message }
