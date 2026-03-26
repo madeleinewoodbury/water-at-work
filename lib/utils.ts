@@ -9,8 +9,9 @@ export function getDisplayName(user: { display_name?: string | null; email: stri
   return user.display_name || user.email.split('@')[0]
 }
 
-function formatOneDecimal(value: number): string {
-  return value % 1 === 0 ? String(value) : value.toFixed(1)
+export function formatOneDecimal(value: number): string {
+  const rounded = Math.round(value * 10) / 10
+  return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1)
 }
 
 export function formatWaterAmount(oz: number): string {
