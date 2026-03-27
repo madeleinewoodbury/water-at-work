@@ -24,7 +24,7 @@ export function getTeamProgressPercent(teamTotal: number, teamGoal: number): num
 }
 
 export function getTeamStatus(teamPercent: number, currentHour: number): TeamStatus {
-  if (teamPercent >= 120) {
+  if (teamPercent >= 150) {
     return { emoji: '🌊', label: 'flooded!', colorClass: 'text-orange-700 dark:text-orange-400' }
   }
   if (teamPercent >= 110) {
@@ -57,7 +57,7 @@ export function getTeamStatus(teamPercent: number, currentHour: number): TeamSta
 }
 
 export function getTeamCelebrationText(teamPercent: number): string {
-  if (teamPercent >= 120) return `${teamPercent}% - unstoppable!`
+  if (teamPercent >= 150) return `${teamPercent}% - unstoppable!`
   if (teamPercent > 100) return `${teamPercent}% - above and beyond!`
   if (teamPercent === 100) return 'Goal reached!'
   return `${teamPercent}% of team goal`

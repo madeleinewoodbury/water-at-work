@@ -35,7 +35,7 @@ type Props = {
 const WORKDAY_START = 9
 const WORKDAY_HOURS = 8
 const ABOVE_AND_BEYOND_MULTIPLIER = 1.1
-const FLOODED_OVER_GOAL_MULTIPLIER = 1.2
+const FLOODED_OVER_GOAL_MULTIPLIER = 1.5
 
 function getCompletedHours(now: Date): number {
   const hour = now.getHours()
