@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getTeamCelebrationText, getTeamProgressPercent } from '@/lib/team-status'
+import { formatOneDecimal } from '@/lib/utils'
 
 type TeamWaterSVGProps = {
   teamTotal: number
@@ -214,7 +215,7 @@ export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps)
       {/* Numeric summary */}
       <div className="text-center">
         <p className="text-2xl font-bold tabular-nums text-primary">
-          {teamTotal} <span className="text-base font-normal text-muted-foreground">/ {teamGoal} oz</span>
+          {formatOneDecimal(teamTotal)} <span className="text-base font-normal text-muted-foreground">/ {formatOneDecimal(teamGoal)} oz</span>
         </p>
         <p className={`text-sm ${goalReached ? 'font-medium text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
           {getTeamCelebrationText(percentage)}

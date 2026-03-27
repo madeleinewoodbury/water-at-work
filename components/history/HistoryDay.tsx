@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { formatOneDecimal } from '@/lib/utils'
 
 type Entry = {
   ounces: number
@@ -71,9 +72,9 @@ export default function HistoryDay({ date, total, dailyGoal, entries }: Props) {
           </div>
           <span className="min-w-[90px] text-right text-sm tabular-nums">
             <span className={`font-semibold ${metGoal ? 'text-primary' : ''}`}>
-              {total}
+              {formatOneDecimal(total)}
             </span>
-            <span className="text-muted-foreground"> / {dailyGoal} oz</span>
+            <span className="text-muted-foreground"> / {formatOneDecimal(dailyGoal)} oz</span>
           </span>
         </div>
       </button>
@@ -86,7 +87,7 @@ export default function HistoryDay({ date, total, dailyGoal, entries }: Props) {
                 key={i}
                 className="flex items-center justify-between py-1 text-sm text-muted-foreground"
               >
-                <span>{entry.ounces} oz</span>
+                <span>{formatOneDecimal(entry.ounces)} oz</span>
                 <span>{formatTime(entry.created_at)}</span>
               </li>
             ))}

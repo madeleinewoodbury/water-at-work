@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Check } from 'lucide-react'
-import { formatWaterAmount } from '@/lib/utils'
+import { formatOneDecimal, formatWaterAmount } from '@/lib/utils'
 
 type Member = { name: string; ounces: number }
 
@@ -102,7 +102,7 @@ export default function TeamHistoryDay({
                 >
                   <span className="text-foreground">{m.name}</span>
                   <span className="tabular-nums text-muted-foreground">
-                    {m.ounces} oz
+                    {formatOneDecimal(m.ounces)} oz
                   </span>
                 </li>
               ))}

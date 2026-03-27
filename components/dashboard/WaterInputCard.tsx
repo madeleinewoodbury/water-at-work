@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { Pencil, Trash2, PencilLine } from 'lucide-react'
+import { formatOneDecimal } from '@/lib/utils'
 import {
   logIntake,
   updateIntake,
@@ -209,12 +210,12 @@ export default function WaterInputCard({
             <span className="flex items-center gap-1">
               <span>
                 Your total today:{' '}
-                <span className="font-semibold text-foreground">{personalTotal} oz</span>
-                <span className="text-muted-foreground"> / {dailyGoal} oz goal</span>
+                <span className="font-semibold text-foreground">{formatOneDecimal(personalTotal)} oz</span>
+                <span className="text-muted-foreground"> / {formatOneDecimal(dailyGoal)} oz goal</span>
               </span>
               {overrideGoal !== null ? (
                 <>
-                  <span className="text-xs text-muted-foreground">(default: {baseGoal} oz)</span>
+                  <span className="text-xs text-muted-foreground">(default: {formatOneDecimal(baseGoal)} oz)</span>
                   <button
                     type="button"
                     disabled={isPending}
@@ -345,7 +346,7 @@ export default function WaterInputCard({
                     key={entry.id}
                     className="flex items-center justify-between py-1 text-sm text-muted-foreground"
                   >
-                    <span>{entry.ounces} oz</span>
+                    <span>{formatOneDecimal(entry.ounces)} oz</span>
                     <div className="flex items-center gap-1">
                       <span>{formatTime(entry.created_at)}</span>
                       <Button

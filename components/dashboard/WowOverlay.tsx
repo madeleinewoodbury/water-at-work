@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Image from 'next/image'
+import { formatOneDecimal } from '@/lib/utils'
 
 const WOW_GIFS = ['/wow/wow-1-optimized.gif', '/wow/wow-2-optimized.gif', '/wow/wow-3-optimized.gif', '/wow/wow-4-optimized.gif', '/wow/wow-5-optimized.gif']
 
@@ -47,7 +48,7 @@ export default function WowOverlay({ current, onDismiss }: Props) {
           unoptimized
         />
         <p className="text-center text-sm font-medium text-foreground">
-          {current.userName} just logged {current.ounces} oz!
+          {current.userName} just logged {formatOneDecimal(current.ounces)} oz!
         </p>
         <p className="text-xs text-muted-foreground">Wow.</p>
       </div>
