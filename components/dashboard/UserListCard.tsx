@@ -49,18 +49,20 @@ function getHourlyTarget(dailyGoal: number, completedHours: number): number {
 }
 
 function getStatusIndicator(ounces: number, dailyGoal: number, completedHours: number) {
+  const roundedOunces = Math.round(ounces * 10) / 10
+  const roundedDailyGoal = Math.round(dailyGoal * 10) / 10
   const target = getHourlyTarget(dailyGoal, completedHours)
   const aheadTarget = getHourlyTarget(dailyGoal, Math.min(completedHours + 2, WORKDAY_HOURS))
 
-  if (dailyGoal > 0 && ounces >= dailyGoal * FLOODED_OVER_GOAL_MULTIPLIER)
+  if (roundedDailyGoal > 0 && roundedOunces >= roundedDailyGoal * FLOODED_OVER_GOAL_MULTIPLIER)
     return { emoji: '🌊', label: 'flooded!', colorClass: 'text-orange-700 dark:text-orange-400' }
-  if (dailyGoal > 0 && ounces >= dailyGoal * ABOVE_AND_BEYOND_MULTIPLIER)
+  if (roundedDailyGoal > 0 && roundedOunces >= roundedDailyGoal * ABOVE_AND_BEYOND_MULTIPLIER)
     return {
       emoji: '🚀',
       label: 'above & beyond',
       colorClass: 'text-emerald-700 dark:text-emerald-400',
     }
-  if (ounces >= dailyGoal)
+  if (roundedOunces >= roundedDailyGoal)
     return { emoji: '🏆', label: 'crushed it!', colorClass: 'text-green-700 dark:text-green-400' }
   if (ounces > aheadTarget)
     return { emoji: '🚿', label: 'too fast', colorClass: 'text-violet-700 dark:text-violet-400' }
