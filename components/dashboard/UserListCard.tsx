@@ -37,6 +37,10 @@ const WORKDAY_HOURS = 8
 const ABOVE_AND_BEYOND_MULTIPLIER = 1.1
 const FLOODED_OVER_GOAL_MULTIPLIER = 1.5
 
+function roundToOneDecimal(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
 function getCompletedHours(now: Date): number {
   const hour = now.getHours()
   if (hour < WORKDAY_START) return 0
@@ -51,22 +55,28 @@ function getHourlyTarget(dailyGoal: number, completedHours: number): number {
 function getStatusIndicator(ounces: number, dailyGoal: number, completedHours: number) {
   const target = getHourlyTarget(dailyGoal, completedHours)
   const aheadTarget = getHourlyTarget(dailyGoal, Math.min(completedHours + 2, WORKDAY_HOURS))
+  const normalizedOunces = roundToOneDecimal(ounces)
+  const normalizedGoal = roundToOneDecimal(dailyGoal)
+  const normalizedTarget = roundToOneDecimal(target)
+  const normalizedAheadTarget = roundToOneDecimal(aheadTarget)
+  const floodedThreshold = roundToOneDecimal(normalizedGoal * FLOODED_OVER_GOAL_MULTIPLIER)
+  const aboveAndBeyondThreshold = roundToOneDecimal(normalizedGoal * ABOVE_AND_BEYOND_MULTIPLIER)
 
-  if (dailyGoal > 0 && ounces >= dailyGoal * FLOODED_OVER_GOAL_MULTIPLIER)
+  if (normalizedGoal > 0 && normalizedOunces >= floodedThreshold)
     return { emoji: '🌊', label: 'flooded!', colorClass: 'text-orange-700 dark:text-orange-400' }
-  if (dailyGoal > 0 && ounces >= dailyGoal * ABOVE_AND_BEYOND_MULTIPLIER)
+  if (normalizedGoal > 0 && normalizedOunces >= aboveAndBeyondThreshold)
     return {
       emoji: '🚀',
       label: 'above & beyond',
       colorClass: 'text-emerald-700 dark:text-emerald-400',
     }
-  if (ounces >= dailyGoal)
+  if (normalizedOunces >= normalizedGoal)
     return { emoji: '🏆', label: 'crushed it!', colorClass: 'text-green-700 dark:text-green-400' }
-  if (ounces > aheadTarget)
+  if (normalizedOunces > normalizedAheadTarget)
     return { emoji: '🚿', label: 'too fast', colorClass: 'text-violet-700 dark:text-violet-400' }
-  if (ounces >= target)
+  if (normalizedOunces >= normalizedTarget)
     return { emoji: '💧', label: 'on track', colorClass: 'text-sky-700 dark:text-sky-400' }
-  if (target > 0 && ounces >= target * 0.5)
+  if (normalizedTarget > 0 && normalizedOunces >= roundToOneDecimal(normalizedTarget * 0.5))
     return { emoji: '🐢', label: 'behind', colorClass: 'text-amber-700 dark:text-amber-400' }
   return { emoji: '💤', label: 'slacking', colorClass: 'text-muted-foreground' }
 }
