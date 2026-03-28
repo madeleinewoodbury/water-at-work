@@ -1,4 +1,4 @@
-import { cacheLife } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 // Cache the team users list for ~5 minutes.
@@ -9,6 +9,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 export async function getCachedTeamUsers() {
   'use cache'
   cacheLife('minutes')
+  cacheTag('team-users')
 
   const { data } = await supabaseAdmin
     .from('users')
