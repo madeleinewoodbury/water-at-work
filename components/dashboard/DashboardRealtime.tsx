@@ -41,19 +41,12 @@ type DailyGoalOverride = {
   daily_goal: number
 }
 
-type PersonalEntry = {
-  id: string
-  ounces: number
-  created_at: string
-}
-
 type Props = {
   initialData: {
     currentUserId: string
     today: string
     intakeLogs: IntakeLog[]
     teamUsers: TeamUser[]
-    myEntries: PersonalEntry[]
     todayOptOuts: OptOut[]
     todayOverrides: DailyGoalOverride[]
   }
@@ -66,7 +59,6 @@ export default function DashboardRealtime({ initialData }: Props) {
 
   const [teamUsers, setTeamUsers] = useState(initialData.teamUsers)
   const [intakeLogs, setIntakeLogs] = useState(initialData.intakeLogs)
-  const [myEntries, setMyEntries] = useState(initialData.myEntries)
   const [todayOptOuts, setTodayOptOuts] = useState(initialData.todayOptOuts)
   const [todayOverrides, setTodayOverrides] = useState(initialData.todayOverrides)
   const [wowQueue, setWowQueue] = useState<WowEvent[]>([])
@@ -145,6 +137,11 @@ export default function DashboardRealtime({ initialData }: Props) {
         return b.ounces - a.ounces
       })
 
+    const myEntries = intakeLogs
+      .filter((l) => l.user_id === currentUserId)
+      .map((l) => ({ id: l.id, ounces: l.ounces, created_at: l.created_at }))
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+
     return {
       personalTotal,
       personalGoal,
@@ -158,6 +155,7 @@ export default function DashboardRealtime({ initialData }: Props) {
       activeUsers,
       userList,
       currentUserOptOut,
+      myEntries,
     }
   }, [intakeLogs, todayOptOuts, todayOverrides, teamUsers, currentUserId, currentHour])
 
@@ -168,12 +166,6 @@ export default function DashboardRealtime({ initialData }: Props) {
         const rawRow = payload.new as unknown as IntakeLog
         const row = { ...rawRow, ounces: Number(rawRow.ounces) }
         setIntakeLogs((prev) => [...prev, row])
-        if (row.user_id === currentUserId) {
-          setMyEntries((prev) => [
-            ...prev,
-            { id: row.id, ounces: row.ounces, created_at: row.created_at },
-          ])
-        }
         // Trigger wow overlay
         setWowQueue((prev) => {
           if (prev.length >= MAX_WOW_QUEUE) return prev
@@ -193,22 +185,16 @@ export default function DashboardRealtime({ initialData }: Props) {
         const rawRow = payload.new as unknown as IntakeLog
         const row = { ...rawRow, ounces: Number(rawRow.ounces) }
         setIntakeLogs((prev) => prev.map((l) => (l.id === row.id ? row : l)))
-        if (row.user_id === currentUserId) {
-          setMyEntries((prev) =>
-            prev.map((e) => (e.id === row.id ? { ...e, ounces: row.ounces } : e))
-          )
-        }
       }
 
       if (payload.eventType === 'DELETE') {
         const old = payload.old as unknown as IntakeLog
         if (old.id) {
           setIntakeLogs((prev) => prev.filter((l) => l.id !== old.id))
-          setMyEntries((prev) => prev.filter((e) => e.id !== old.id))
         }
       }
     },
-    [currentUserId]
+    []
   )
 
   const handleOptOutChange = useCallback(
@@ -367,7 +353,7 @@ export default function DashboardRealtime({ initialData }: Props) {
         baseGoal={dashboardData.personalBaseGoal}
         overrideGoal={dashboardData.personalOverrideGoal}
         overrideId={dashboardData.personalOverrideId}
-        entries={myEntries}
+        entries={dashboardData.myEntries}
         isOptedOut={!!dashboardData.currentUserOptOut}
         optOutId={dashboardData.currentUserOptOut?.id ?? null}
         optedOutByAnother={
