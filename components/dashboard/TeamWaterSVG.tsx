@@ -17,6 +17,7 @@ const GLASS_BOTTOM = 145
 const GOAL_Y = GLASS_TOP + 12 // goal line sits just below the rim
 const FILL_ZONE = GLASS_BOTTOM - GOAL_Y // 0-100% fills this range
 const OVERFLOW_ZONE = GOAL_Y - GLASS_TOP // 12px above goal line to rim
+const HALF_Y = GLASS_BOTTOM - 0.5 * FILL_ZONE // 50% mark = Y 86
 const TOP_HALF_W = 45 // half-width at top
 const BOT_HALF_W = 35 // half-width at bottom
 const CENTER_X = 65 // shifted slightly left to make room for "Goal" label
@@ -76,6 +77,11 @@ export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps)
   const goalLineWidth = widthAtY(GOAL_Y)
   const goalLineX1 = CENTER_X - goalLineWidth / 2
   const goalLineX2 = CENTER_X + goalLineWidth / 2
+
+  // Halfway marker geometry
+  const halfLineWidth = widthAtY(HALF_Y)
+  const halfLineX1 = CENTER_X - halfLineWidth / 2
+  const halfLineX2 = CENTER_X + halfLineWidth / 2
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -209,6 +215,27 @@ export default function TeamWaterSVG({ teamTotal, teamGoal }: TeamWaterSVGProps)
           style={{ transition: 'fill 0.5s' }}
         >
           Goal
+        </text>
+
+        {/* 50% halfway marker */}
+        <line
+          x1={halfLineX1}
+          y1={HALF_Y}
+          x2={halfLineX2}
+          y2={HALF_Y}
+          stroke="var(--muted-foreground)"
+          strokeWidth="1"
+          strokeDasharray="2 3"
+          opacity="0.35"
+        />
+        <text
+          x={halfLineX2 + 5}
+          y={HALF_Y + 4}
+          fill="var(--muted-foreground)"
+          fontSize="8"
+          opacity="0.5"
+        >
+          50%
         </text>
       </svg>
 
