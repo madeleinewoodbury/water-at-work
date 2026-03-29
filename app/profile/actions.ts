@@ -129,20 +129,27 @@ export async function updateDailyGoal(
   const normalizedGoal = roundToOneDecimal(dailyGoal)
 
   // Fetch the current goal so we can preserve it for historical days
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('users')
     .select('daily_goal')
     .eq('id', user.id)
     .single()
 
-  const oldGoal = roundToOneDecimal(Number(profile?.daily_goal ?? 32))
+  if (profileError || !profile) {
+    return { error: 'Could not read current goal' }
+  }
+
+  const oldGoal = roundToOneDecimal(Number(profile.daily_goal))
 
   // Skip backfill if the goal hasn't actually changed
   if (oldGoal !== normalizedGoal) {
     const today = new Date().toISOString().split('T')[0]
 
     // Find past dates with intake logs but no existing override
-    const [{ data: logDates }, { data: existingOverrides }] = await Promise.all([
+    const [
+      { data: logDates, error: logError },
+      { data: existingOverrides, error: overrideError },
+    ] = await Promise.all([
       supabase
         .from('intake_logs')
         .select('date')
@@ -154,6 +161,10 @@ export async function updateDailyGoal(
         .eq('user_id', user.id)
         .lt('date', today),
     ])
+
+    if (logError || overrideError) {
+      return { error: 'Could not read history for goal backfill' }
+    }
 
     const existingOverrideDates = new Set(
       (existingOverrides ?? []).map((o) => o.date)
