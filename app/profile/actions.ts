@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
@@ -128,6 +128,65 @@ export async function updateDailyGoal(
   }
   const normalizedGoal = roundToOneDecimal(dailyGoal)
 
+  // Fetch the current goal so we can preserve it for historical days
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('daily_goal')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { error: 'Could not read current goal' }
+  }
+
+  const oldGoal = roundToOneDecimal(Number(profile.daily_goal))
+
+  // Skip backfill if the goal hasn't actually changed
+  if (oldGoal !== normalizedGoal) {
+    const today = new Date().toISOString().split('T')[0]
+
+    // Find past dates with intake logs but no existing override
+    const [
+      { data: logDates, error: logError },
+      { data: existingOverrides, error: overrideError },
+    ] = await Promise.all([
+      supabase
+        .from('intake_logs')
+        .select('date')
+        .eq('user_id', user.id)
+        .lt('date', today),
+      supabase
+        .from('daily_goal_overrides')
+        .select('date')
+        .eq('user_id', user.id)
+        .lt('date', today),
+    ])
+
+    if (logError || overrideError) {
+      return { error: 'Could not read history for goal backfill' }
+    }
+
+    const existingOverrideDates = new Set(
+      (existingOverrides ?? []).map((o) => o.date)
+    )
+    const datesToBackfill = [
+      ...new Set((logDates ?? []).map((l) => l.date)),
+    ].filter((d) => !existingOverrideDates.has(d))
+
+    if (datesToBackfill.length > 0) {
+      const rows = datesToBackfill.map((date) => ({
+        user_id: user.id,
+        date,
+        daily_goal: oldGoal,
+      }))
+      const { error: backfillError } = await supabase
+        .from('daily_goal_overrides')
+        .upsert(rows, { onConflict: 'user_id,date', ignoreDuplicates: true })
+
+      if (backfillError) return { error: backfillError.message }
+    }
+  }
+
   const { error } = await supabase
     .from('users')
     .update({ daily_goal: normalizedGoal })
@@ -135,6 +194,7 @@ export async function updateDailyGoal(
 
   if (error) return { error: error.message }
 
+  revalidateTag('team-users', { expire: 0 })
   revalidatePath('/dashboard')
   return { success: 'Daily goal updated' }
 }

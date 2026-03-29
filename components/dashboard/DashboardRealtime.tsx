@@ -64,6 +64,14 @@ export default function DashboardRealtime({ initialData }: Props) {
   const [wowQueue, setWowQueue] = useState<WowEvent[]>([])
   const [isPending, startTransition] = useTransition()
 
+  // Sync state when server re-fetches fresh data (e.g. after navigation)
+  useEffect(() => {
+    setTeamUsers(initialData.teamUsers)
+    setIntakeLogs(initialData.intakeLogs)
+    setTodayOptOuts(initialData.todayOptOuts)
+    setTodayOverrides(initialData.todayOverrides)
+  }, [initialData.teamUsers, initialData.intakeLogs, initialData.todayOptOuts, initialData.todayOverrides])
+
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
 
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours())
