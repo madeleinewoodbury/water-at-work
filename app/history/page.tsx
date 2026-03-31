@@ -57,7 +57,7 @@ export default async function HistoryPage({
           .select('user_id, start_date, end_date')
           .lte('start_date', toDate)
           .gte('end_date', fromDate),
-        supabase.from('users').select('id, email, display_name, daily_goal'),
+        supabase.from('users').select('id, email, display_name, daily_goal, created_at'),
         supabase
           .from('daily_goal_overrides')
           .select('user_id, date, daily_goal')
@@ -92,6 +92,11 @@ export default async function HistoryPage({
       return overrideLookup.get(date)?.get(userId) ?? baseGoal
     }
 
+    function hasJoinedByDate(createdAt: string | null | undefined, date: string): boolean {
+      if (!createdAt) return true
+      return createdAt.slice(0, 10) <= date
+    }
+
     // Group logs by date
     const logsByDate = new Map<string, { user_id: string; ounces: number }[]>()
     for (const log of allLogs ?? []) {
@@ -104,7 +109,9 @@ export default async function HistoryPage({
 
     const teamDays = Array.from(logsByDate.entries())
       .map(([date, logs]) => {
-        const activeUsers = (allUsers ?? []).filter((u) => !isOptedOut(u.id, date))
+        const activeUsers = (allUsers ?? []).filter(
+          (u) => hasJoinedByDate(u.created_at, date) && !isOptedOut(u.id, date)
+        )
         const teamGoal = activeUsers.reduce(
           (s, u) => s + getEffectiveGoal(u.id, date, Number(u.daily_goal ?? 32)),
           0
