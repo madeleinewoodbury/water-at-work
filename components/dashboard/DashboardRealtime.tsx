@@ -26,6 +26,7 @@ type TeamUser = {
   display_name: string | null
   daily_goal: number
   avatar_url: string | null
+  is_active: boolean
 }
 
 type OptOut = {
@@ -49,6 +50,7 @@ type Props = {
     teamUsers: TeamUser[]
     todayOptOuts: OptOut[]
     todayOverrides: DailyGoalOverride[]
+    isCurrentUserActive: boolean
   }
 }
 
@@ -61,6 +63,7 @@ export default function DashboardRealtime({ initialData }: Props) {
   const [intakeLogs, setIntakeLogs] = useState(initialData.intakeLogs)
   const [todayOptOuts, setTodayOptOuts] = useState(initialData.todayOptOuts)
   const [todayOverrides, setTodayOverrides] = useState(initialData.todayOverrides)
+  const [isCurrentUserActive, setIsCurrentUserActive] = useState(initialData.isCurrentUserActive)
   const [wowQueue, setWowQueue] = useState<WowEvent[]>([])
   const [isPending, startTransition] = useTransition()
 
@@ -261,12 +264,27 @@ export default function DashboardRealtime({ initialData }: Props) {
       if (payload.eventType === 'UPDATE') {
         const rawUpdated = payload.new as unknown as TeamUser
         const updated = { ...rawUpdated, daily_goal: Number(rawUpdated.daily_goal) }
-        setTeamUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
+        // Track current user's active status for the inactive banner
+        if (updated.id === currentUserId) {
+          setIsCurrentUserActive(updated.is_active)
+        }
+        if (!updated.is_active) {
+          // User deactivated — remove from team list
+          setTeamUsers((prev) => prev.filter((u) => u.id !== updated.id))
+        } else {
+          setTeamUsers((prev) => {
+            const exists = prev.some((u) => u.id === updated.id)
+            if (exists) return prev.map((u) => (u.id === updated.id ? updated : u))
+            // User reactivated — add back to team list
+            return [...prev, updated]
+          })
+        }
       }
 
       if (payload.eventType === 'INSERT') {
         const rawNewUser = payload.new as unknown as TeamUser
         const newUser = { ...rawNewUser, daily_goal: Number(rawNewUser.daily_goal) }
+        if (!newUser.is_active) return
         setTeamUsers((prev) => {
           if (prev.some((u) => u.id === newUser.id)) return prev
           return [...prev, newUser]
@@ -280,7 +298,7 @@ export default function DashboardRealtime({ initialData }: Props) {
         }
       }
     },
-    []
+    [currentUserId]
   )
 
   // Subscribe to real-time changes
@@ -355,6 +373,11 @@ export default function DashboardRealtime({ initialData }: Props) {
 
   return (
     <>
+      {!isCurrentUserActive && (
+        <div className="col-span-full rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+          You&apos;ve been marked inactive due to 7 days without logging. Log water to rejoin the team.
+        </div>
+      )}
       <WaterInputCard
         personalTotal={dashboardData.personalTotal}
         dailyGoal={dashboardData.personalGoal}

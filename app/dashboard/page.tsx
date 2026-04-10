@@ -18,6 +18,7 @@ export default async function DashboardPage() {
     { data: todayOptOuts },
     { data: todayOverrides },
     teamUsers,
+    { data: currentUserProfile },
   ] = await Promise.all([
     supabase
       .from('intake_logs')
@@ -33,6 +34,11 @@ export default async function DashboardPage() {
       .select('id, user_id, date, daily_goal')
       .eq('date', today),
     getCachedTeamUsers(),
+    supabase
+      .from('users')
+      .select('is_active')
+      .eq('id', user.id)
+      .single(),
   ])
 
   const intakeLogsNormalized = (intakeLogs ?? []).map((log) => ({
@@ -59,6 +65,7 @@ export default async function DashboardPage() {
             opted_out_by: o.opted_out_by as string | null,
           })),
           todayOverrides: todayOverridesNormalized,
+          isCurrentUserActive: currentUserProfile?.is_active !== false,
         }}
       />
     </main>
