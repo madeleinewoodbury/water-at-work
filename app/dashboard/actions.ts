@@ -28,21 +28,23 @@ export async function logIntake(
 
   const today = new Date().toISOString().split('T')[0]
 
+  // Fetch user's team_id to stamp on the log
+  const { data: profile } = await supabase
+    .from('users')
+    .select('is_active, team_id')
+    .eq('id', user.id)
+    .single()
+
   const { error } = await supabase.from('intake_logs').insert({
     user_id: user.id,
     date: today,
     ounces: normalizedOunces,
+    team_id: profile?.team_id ?? null,
   })
 
   if (error) return { error: error.message }
 
   // Reactivate the user if they were marked inactive
-  const { data: profile } = await supabase
-    .from('users')
-    .select('is_active')
-    .eq('id', user.id)
-    .single()
-
   if (profile && !profile.is_active) {
     await supabase.from('users').update({ is_active: true }).eq('id', user.id)
   }
@@ -117,11 +119,18 @@ export async function optOutToday(): Promise<ActionState> {
 
   const today = new Date().toISOString().split('T')[0]
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('team_id')
+    .eq('id', user.id)
+    .single()
+
   const { error } = await supabase.from('opt_outs').insert({
     user_id: user.id,
     opted_out_by: user.id,
     start_date: today,
     end_date: today,
+    team_id: profile?.team_id ?? null,
   })
 
   if (error) return { error: error.message }
@@ -142,6 +151,16 @@ export async function optOutUser(
 
   if (!user) return { error: 'Not authenticated' }
   if (targetUserId === user.id) return { error: 'Use the regular opt-out for yourself' }
+
+  // Fetch both users' team info for same-team verification
+  const [{ data: actorProfile }, { data: targetProfile }] = await Promise.all([
+    supabase.from('users').select('team_id').eq('id', user.id).single(),
+    supabase.from('users').select('team_id').eq('id', targetUserId).single(),
+  ])
+
+  if (!actorProfile?.team_id || actorProfile.team_id !== targetProfile?.team_id) {
+    return { error: 'You can only sit out members of your own team' }
+  }
 
   // Compute "today" and current hour in the caller's timezone
   const now = new Date()
@@ -185,6 +204,7 @@ export async function optOutUser(
     opted_out_by: user.id,
     start_date: today,
     end_date: today,
+    team_id: actorProfile.team_id,
   })
 
   if (error) return { error: error.message }
@@ -253,11 +273,18 @@ export async function setDailyGoalOverride(
 
   const today = new Date().toISOString().split('T')[0]
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('team_id')
+    .eq('id', user.id)
+    .single()
+
   const { error } = await supabase.from('daily_goal_overrides').upsert(
     {
       user_id: user.id,
       date: today,
       daily_goal: normalizedGoal,
+      team_id: profile?.team_id ?? null,
     },
     { onConflict: 'user_id,date' }
   )

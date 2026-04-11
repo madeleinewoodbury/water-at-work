@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ThemeToggle } from './ThemeToggle'
 import UserMenu from './UserMenu'
 import BrandLogo from './BrandLogo'
+import NotificationBell from './NotificationBell'
 
 const navLinkClass =
   'inline-flex h-7 cursor-pointer items-center justify-center rounded-lg px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted'
@@ -19,16 +20,26 @@ export default async function Navbar() {
   let displayName: string | null = null
   let email = ''
   let avatarUrl: string | null = null
+  let initialNotifications: { id: string; type: string; message: string; is_read: boolean; created_at: string }[] = []
 
   if (user) {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('display_name, email, avatar_url')
-      .eq('id', user.id)
-      .single()
+    const [{ data: profile }, { data: notifs }] = await Promise.all([
+      supabase
+        .from('users')
+        .select('display_name, email, avatar_url')
+        .eq('id', user.id)
+        .single(),
+      supabase
+        .from('notifications')
+        .select('id, type, message, is_read, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ])
     displayName = profile?.display_name ?? null
     email = profile?.email ?? user.email ?? ''
     avatarUrl = profile?.avatar_url ?? null
+    initialNotifications = notifs ?? []
   }
 
   return (
@@ -50,6 +61,13 @@ export default async function Navbar() {
               <Link href="/history" className={navLinkClass}>
                 History
               </Link>
+              <Link href="/teams" className={navLinkClass}>
+                Teams
+              </Link>
+              <NotificationBell
+                userId={user.id}
+                initialNotifications={initialNotifications}
+              />
               <UserMenu
                 displayName={displayName}
                 email={email}

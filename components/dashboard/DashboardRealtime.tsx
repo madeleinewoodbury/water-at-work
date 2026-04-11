@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback, useTransition, useRef } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { getTeamProgressPercent, getTeamStatus } from '@/lib/team-status'
 import { getDisplayName } from '@/lib/utils'
@@ -51,13 +52,16 @@ type Props = {
     todayOptOuts: OptOut[]
     todayOverrides: DailyGoalOverride[]
     isCurrentUserActive: boolean
+    teamId: string | null
+    teamRole: string | null
   }
 }
 
 const MAX_WOW_QUEUE = 3
 
 export default function DashboardRealtime({ initialData }: Props) {
-  const { currentUserId, today } = initialData
+  const { currentUserId, today, teamId } = initialData
+  const hasTeam = !!teamId
 
   const [teamUsers, setTeamUsers] = useState(initialData.teamUsers)
   const [intakeLogs, setIntakeLogs] = useState(initialData.intakeLogs)
@@ -301,56 +305,95 @@ export default function DashboardRealtime({ initialData }: Props) {
     [currentUserId]
   )
 
-  // Subscribe to real-time changes
+  // Subscribe to real-time changes — scoped by team when user has one
   useEffect(() => {
     const supabase = createClient()
 
-    const channel = supabase
-      .channel('dashboard-realtime')
-      .on(
+    const channel = supabase.channel('dashboard-realtime')
+
+    if (hasTeam && teamId) {
+      // Team-scoped subscriptions
+      channel
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'intake_logs',
+            filter: `team_id=eq.${teamId}`,
+          },
+          (payload) => {
+            const row = payload.new as unknown as IntakeLog & { date?: string }
+            // Only process today's events for dashboard state
+            if (payload.eventType === 'INSERT' && row.date === today) {
+              handleIntakeChange(payload as Parameters<typeof handleIntakeChange>[0])
+            } else if (payload.eventType !== 'INSERT') {
+              handleIntakeChange(payload as Parameters<typeof handleIntakeChange>[0])
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'opt_outs',
+            filter: `team_id=eq.${teamId}`,
+          },
+          handleOptOutChange
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'daily_goal_overrides',
+            filter: `team_id=eq.${teamId}`,
+          },
+          (payload) => {
+            const row = payload.new as unknown as DailyGoalOverride
+            if (payload.eventType === 'DELETE' || row.date === today) {
+              handleOverrideChange(payload as Parameters<typeof handleOverrideChange>[0])
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'users',
+            filter: `team_id=eq.${teamId}`,
+          },
+          handleUserChange
+        )
+    } else {
+      // Personal-only subscriptions (no team)
+      channel.on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'intake_logs',
-          filter: `date=eq.${today}`,
+          filter: `user_id=eq.${currentUserId}`,
         },
-        handleIntakeChange
+        (payload) => {
+          const row = payload.new as unknown as IntakeLog & { date?: string }
+          if (payload.eventType === 'INSERT' && row.date === today) {
+            handleIntakeChange(payload as Parameters<typeof handleIntakeChange>[0])
+          } else if (payload.eventType !== 'INSERT') {
+            handleIntakeChange(payload as Parameters<typeof handleIntakeChange>[0])
+          }
+        }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'opt_outs',
-        },
-        handleOptOutChange
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'daily_goal_overrides',
-          filter: `date=eq.${today}`,
-        },
-        handleOverrideChange
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'users',
-        },
-        handleUserChange
-      )
-      .subscribe()
+    }
+
+    channel.subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [today, handleIntakeChange, handleOptOutChange, handleOverrideChange, handleUserChange])
+  }, [today, teamId, hasTeam, currentUserId, handleIntakeChange, handleOptOutChange, handleOverrideChange, handleUserChange])
 
   const handleOptOutUser = useCallback(
     (targetUserId: string) => {
@@ -393,22 +436,38 @@ export default function DashboardRealtime({ initialData }: Props) {
           dashboardData.currentUserOptOut.opted_out_by !== currentUserId
         }
       />
-      <TeamProgressCard
-        teamTotal={dashboardData.teamTotal}
-        teamPercent={dashboardData.teamPercent}
-        teamStatus={dashboardData.teamStatus}
-        participantCount={dashboardData.activeUsers.length}
-        totalMemberCount={teamUsers.length}
-        teamGoal={dashboardData.teamGoal}
-      />
-      <UserListCard
-        users={dashboardData.userList}
-        currentUserId={currentUserId}
-        isPastCutoff={isPastCutoff}
-        isPending={isPending}
-        onOptOutUser={handleOptOutUser}
-        onUndoOptOut={handleUndoTeamOptOut}
-      />
+      {hasTeam ? (
+        <>
+          <TeamProgressCard
+            teamTotal={dashboardData.teamTotal}
+            teamPercent={dashboardData.teamPercent}
+            teamStatus={dashboardData.teamStatus}
+            participantCount={dashboardData.activeUsers.length}
+            totalMemberCount={teamUsers.length}
+            teamGoal={dashboardData.teamGoal}
+          />
+          <UserListCard
+            users={dashboardData.userList}
+            currentUserId={currentUserId}
+            isPastCutoff={isPastCutoff}
+            isPending={isPending}
+            onOptOutUser={handleOptOutUser}
+            onUndoOptOut={handleUndoTeamOptOut}
+          />
+        </>
+      ) : (
+        <div className="col-span-full rounded-lg border border-border bg-card px-6 py-8 text-center">
+          <p className="text-muted-foreground">
+            Join a team to see team progress and collaborate with others.
+          </p>
+          <Link
+            href="/teams"
+            className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
+          >
+            Browse Teams
+          </Link>
+        </div>
+      )}
       <WowOverlay current={wowQueue[0] ?? null} onDismiss={handleWowDismiss} />
     </>
   )

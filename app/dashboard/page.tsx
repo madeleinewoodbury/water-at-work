@@ -13,32 +13,54 @@ export default async function DashboardPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
+  // Fetch current user's profile including team info
+  const { data: currentUserProfile } = await supabase
+    .from('users')
+    .select('is_active, team_id, team_role')
+    .eq('id', user.id)
+    .single()
+
+  const teamId = currentUserProfile?.team_id as string | null
+  const teamRole = currentUserProfile?.team_role as string | null
+  const hasTeam = !!teamId
+
+  // Build queries — team-scoped when user has a team, personal-only otherwise
+  const intakeLogsQuery = supabase
+    .from('intake_logs')
+    .select('id, user_id, date, ounces, created_at')
+    .eq('date', today)
+
+  const optOutsQuery = supabase
+    .from('opt_outs')
+    .select('id, user_id, opted_out_by, start_date, end_date')
+    .lte('start_date', today)
+    .gte('end_date', today)
+
+  const overridesQuery = supabase
+    .from('daily_goal_overrides')
+    .select('id, user_id, date, daily_goal')
+    .eq('date', today)
+
+  if (hasTeam) {
+    intakeLogsQuery.eq('team_id', teamId)
+    optOutsQuery.eq('team_id', teamId)
+    overridesQuery.eq('team_id', teamId)
+  } else {
+    intakeLogsQuery.eq('user_id', user.id)
+    optOutsQuery.eq('user_id', user.id)
+    overridesQuery.eq('user_id', user.id)
+  }
+
   const [
     { data: intakeLogs },
     { data: todayOptOuts },
     { data: todayOverrides },
     teamUsers,
-    { data: currentUserProfile },
   ] = await Promise.all([
-    supabase
-      .from('intake_logs')
-      .select('id, user_id, date, ounces, created_at')
-      .eq('date', today),
-    supabase
-      .from('opt_outs')
-      .select('id, user_id, opted_out_by, start_date, end_date')
-      .lte('start_date', today)
-      .gte('end_date', today),
-    supabase
-      .from('daily_goal_overrides')
-      .select('id, user_id, date, daily_goal')
-      .eq('date', today),
-    getCachedTeamUsers(),
-    supabase
-      .from('users')
-      .select('is_active')
-      .eq('id', user.id)
-      .single(),
+    intakeLogsQuery,
+    optOutsQuery,
+    overridesQuery,
+    hasTeam ? getCachedTeamUsers(teamId) : Promise.resolve([]),
   ])
 
   const intakeLogsNormalized = (intakeLogs ?? []).map((log) => ({
@@ -66,6 +88,8 @@ export default async function DashboardPage() {
           })),
           todayOverrides: todayOverridesNormalized,
           isCurrentUserActive: currentUserProfile?.is_active !== false,
+          teamId,
+          teamRole,
         }}
       />
     </main>

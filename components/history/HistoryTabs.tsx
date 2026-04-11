@@ -5,9 +5,10 @@ import { cn } from '@/lib/utils'
 
 type Props = {
   activeTab: 'personal' | 'team'
+  hasTeam?: boolean
 }
 
-export default function HistoryTabs({ activeTab }: Props) {
+export default function HistoryTabs({ activeTab, hasTeam = true }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -36,18 +37,20 @@ export default function HistoryTabs({ activeTab }: Props) {
       >
         Personal
       </button>
-      <button
-        type="button"
-        onClick={() => switchTab('team')}
-        className={cn(
-          'cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-          activeTab === 'team'
-            ? 'bg-primary text-primary-foreground'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
-      >
-        Team
-      </button>
+      {hasTeam && (
+        <button
+          type="button"
+          onClick={() => switchTab('team')}
+          className={cn(
+            'cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+            activeTab === 'team'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          Team
+        </button>
+      )}
     </div>
   )
 }

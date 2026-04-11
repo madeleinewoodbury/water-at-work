@@ -75,5 +75,5 @@ export async function completeOnboarding(formData: FormData) {
 
   revalidatePath('/', 'layout')
   revalidatePath('/dashboard')
-  redirect('/dashboard')
+  redirect('/teams')
 }

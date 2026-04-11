@@ -36,7 +36,17 @@ export default async function HistoryPage({
   const fromDate = rawFrom <= rawTo ? rawFrom : rawTo
   const toDate = rawFrom <= rawTo ? rawTo : rawFrom
 
-  const tab = params.tab === 'team' ? 'team' : 'personal'
+  // Fetch user's team info
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('team_id')
+    .eq('id', user.id)
+    .single()
+
+  const teamId = userProfile?.team_id as string | null
+  const hasTeam = !!teamId
+
+  const tab = params.tab === 'team' && hasTeam ? 'team' : 'personal'
   const excludeWeekends = params.show_weekends !== '1'
 
   function isWeekend(dateStr: string): boolean {
@@ -44,26 +54,35 @@ export default async function HistoryPage({
     return day === 0 || day === 6
   }
 
-  if (tab === 'team') {
+  if (tab === 'team' && teamId) {
+    const logsQuery = supabase
+      .from('intake_logs')
+      .select('user_id, date, ounces')
+      .eq('team_id', teamId)
+      .gte('date', fromDate)
+      .lte('date', toDate)
+
+    const optOutsQuery = supabase
+      .from('opt_outs')
+      .select('user_id, start_date, end_date')
+      .eq('team_id', teamId)
+      .lte('start_date', toDate)
+      .gte('end_date', fromDate)
+
+    const usersQuery = supabase
+      .from('users')
+      .select('id, email, display_name, daily_goal, created_at')
+      .eq('team_id', teamId)
+
+    const overridesQuery = supabase
+      .from('daily_goal_overrides')
+      .select('user_id, date, daily_goal')
+      .eq('team_id', teamId)
+      .gte('date', fromDate)
+      .lte('date', toDate)
+
     const [{ data: allLogs }, { data: allOptOuts }, { data: allUsers }, { data: allOverrides }] =
-      await Promise.all([
-        supabase
-          .from('intake_logs')
-          .select('user_id, date, ounces')
-          .gte('date', fromDate)
-          .lte('date', toDate),
-        supabase
-          .from('opt_outs')
-          .select('user_id, start_date, end_date')
-          .lte('start_date', toDate)
-          .gte('end_date', fromDate),
-        supabase.from('users').select('id, email, display_name, daily_goal, created_at'),
-        supabase
-          .from('daily_goal_overrides')
-          .select('user_id, date, daily_goal')
-          .gte('date', fromDate)
-          .lte('date', toDate),
-      ])
+      await Promise.all([logsQuery, optOutsQuery, usersQuery, overridesQuery])
 
     // Build opt-out range map per user
     const optOutMap = new Map<string, { start: string; end: string }[]>()
@@ -149,7 +168,7 @@ export default async function HistoryPage({
     return (
       <main className="mx-auto w-full max-w-[1200px] space-y-6 px-6 py-6">
         <h1 className="text-2xl font-bold tracking-tight">History</h1>
-        <HistoryTabs activeTab="team" />
+        <HistoryTabs activeTab="team" hasTeam={hasTeam} />
         <HistoryFilter defaultFrom={fromDate} defaultTo={toDate} />
         <TeamHistoryList teamDays={teamDays} />
       </main>
@@ -223,7 +242,7 @@ export default async function HistoryPage({
   return (
     <main className="mx-auto w-full max-w-[1200px] space-y-6 px-6 py-6">
       <h1 className="text-2xl font-bold tracking-tight">History</h1>
-      <HistoryTabs activeTab="personal" />
+      <HistoryTabs activeTab="personal" hasTeam={hasTeam} />
       <HistoryFilter defaultFrom={fromDate} defaultTo={toDate} />
       <HistorySummary
         totalOunces={totalOunces}
