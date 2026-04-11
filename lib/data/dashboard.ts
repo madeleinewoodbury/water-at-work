@@ -13,7 +13,8 @@ export async function getCachedTeamUsers() {
 
   const { data } = await supabaseAdmin
     .from('users')
-    .select('id, email, display_name, daily_goal, avatar_url')
+    .select('id, email, display_name, daily_goal, avatar_url, is_active')
+    .eq('is_active', true)
   return (data ?? []).map((u) => ({
     ...u,
     daily_goal: Number(u.daily_goal),

@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS public.users       CASCADE;
 
 DROP TRIGGER  IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
+DROP FUNCTION IF EXISTS public.deactivate_inactive_users();
 
 DROP POLICY IF EXISTS "Users can upload own avatar" ON storage.objects;
 DROP POLICY IF EXISTS "Users can update own avatar" ON storage.objects;
@@ -37,6 +38,7 @@ CREATE TABLE public.users (
   display_name TEXT,
   daily_goal   NUMERIC(6,1) NOT NULL DEFAULT 32.0,
   avatar_url   TEXT,
+  is_active    BOOLEAN     NOT NULL DEFAULT true,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -70,6 +72,41 @@ $$;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Partial index for fast lookup of inactive users
+CREATE INDEX users_inactive_idx ON public.users (id) WHERE is_active = false;
+
+-- Atomic function: find users inactive for 7+ days and deactivate them.
+-- A user is inactive if they have no intake_logs AND no self-initiated
+-- opt-outs (opted_out_by = user_id) overlapping the last 7 days.
+CREATE OR REPLACE FUNCTION public.deactivate_inactive_users()
+RETURNS SETOF UUID
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  WITH inactive AS (
+    SELECT u.id
+    FROM public.users u
+    WHERE u.is_active = true
+      AND NOT EXISTS (
+        SELECT 1 FROM public.intake_logs il
+        WHERE il.user_id = u.id
+          AND il.date >= CURRENT_DATE - INTERVAL '7 days'
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM public.opt_outs oo
+        WHERE oo.user_id = u.id
+          AND oo.opted_out_by = u.id
+          AND oo.end_date >= CURRENT_DATE - INTERVAL '7 days'
+          AND oo.start_date <= CURRENT_DATE
+      )
+  )
+  UPDATE public.users
+  SET is_active = false
+  FROM inactive
+  WHERE users.id = inactive.id
+  RETURNING users.id;
+$$;
 
 
 -- ============================================================

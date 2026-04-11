@@ -36,6 +36,17 @@ export async function logIntake(
 
   if (error) return { error: error.message }
 
+  // Reactivate the user if they were marked inactive
+  const { data: profile } = await supabase
+    .from('users')
+    .select('is_active')
+    .eq('id', user.id)
+    .single()
+
+  if (profile && !profile.is_active) {
+    await supabase.from('users').update({ is_active: true }).eq('id', user.id)
+  }
+
   return null
 }
 
