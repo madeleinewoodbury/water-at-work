@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { Popover } from '@base-ui/react/popover'
 import { Bell, X, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -14,6 +15,7 @@ type Notification = {
   id: string
   type: string
   message: string
+  link: string | null
   is_read: boolean
   created_at: string
 }
@@ -143,7 +145,16 @@ export default function NotificationBell({ userId, initialNotifications }: Props
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-foreground">{n.message}</p>
+                      {n.link ? (
+                        <Link
+                          href={n.link}
+                          className="text-sm text-foreground underline decoration-muted-foreground/40 hover:decoration-foreground"
+                        >
+                          {n.message}
+                        </Link>
+                      ) : (
+                        <p className="text-sm text-foreground">{n.message}</p>
+                      )}
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {timeAgo(n.created_at)}
                       </p>

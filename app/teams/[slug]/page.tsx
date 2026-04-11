@@ -137,7 +137,7 @@ export default async function TeamDetailPage({
       />
 
       {isAdmin && (
-        <TeamDangerZone teamName={team.name} />
+        <TeamDangerZone teamName={team.name} isSoleMember={memberList.length === 1} />
       )}
 
       {isMember && (

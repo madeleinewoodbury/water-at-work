@@ -20,7 +20,7 @@ export default async function Navbar() {
   let displayName: string | null = null
   let email = ''
   let avatarUrl: string | null = null
-  let initialNotifications: { id: string; type: string; message: string; is_read: boolean; created_at: string }[] = []
+  let initialNotifications: { id: string; type: string; message: string; link: string | null; is_read: boolean; created_at: string }[] = []
 
   if (user) {
     const [{ data: profile }, { data: notifs }] = await Promise.all([
@@ -31,7 +31,7 @@ export default async function Navbar() {
         .single(),
       supabase
         .from('notifications')
-        .select('id, type, message, is_read, created_at')
+        .select('id, type, message, link, is_read, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20),

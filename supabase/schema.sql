@@ -443,9 +443,12 @@ CREATE TABLE public.notifications (
     'join_request',
     'request_approved',
     'request_rejected',
-    'team_deleted'
+    'team_deleted',
+    'member_kicked',
+    'member_left'
   )),
   message    TEXT        NOT NULL,
+  link       TEXT,
   is_read    BOOLEAN     NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

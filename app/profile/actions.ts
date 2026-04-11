@@ -264,35 +264,56 @@ export async function deleteAccount(
 
   if (!user) return { error: 'Not authenticated' }
 
-  // Handle team admin succession before deleting
+  // Handle team admin succession and notify teammates before deleting
   const { data: profile } = await supabase
     .from('users')
-    .select('team_id, team_role')
+    .select('team_id, team_role, display_name, email')
     .eq('id', user.id)
     .single()
 
-  if (profile?.team_id && profile.team_role === 'admin') {
-    // Check if other members exist
-    const { data: members } = await supabase
-      .from('users')
-      .select('id, created_at')
-      .eq('team_id', profile.team_id)
-      .neq('id', user.id)
-      .order('created_at', { ascending: true })
-      .limit(1)
-
-    if (members && members.length > 0) {
-      // Promote oldest remaining member to admin
-      await supabaseAdmin
+  if (profile?.team_id) {
+    const [{ data: teammates }, { data: teamInfo }] = await Promise.all([
+      supabaseAdmin
         .from('users')
-        .update({ team_role: 'admin' })
-        .eq('id', members[0].id)
-    } else {
-      // Sole member — delete the team
-      await supabaseAdmin
+        .select('id, created_at')
+        .eq('team_id', profile.team_id)
+        .neq('id', user.id)
+        .order('created_at', { ascending: true }),
+      supabaseAdmin
         .from('teams')
-        .delete()
+        .select('name')
         .eq('id', profile.team_id)
+        .single(),
+    ])
+
+    const displayName = profile.display_name || profile.email?.split('@')[0] || 'A teammate'
+
+    if (profile.team_role === 'admin') {
+      if (teammates && teammates.length > 0) {
+        // Promote oldest remaining member to admin
+        await supabaseAdmin
+          .from('users')
+          .update({ team_role: 'admin' })
+          .eq('id', teammates[0].id)
+      } else {
+        // Sole member — delete the team
+        await supabaseAdmin
+          .from('teams')
+          .delete()
+          .eq('id', profile.team_id)
+      }
+    }
+
+    // Notify remaining teammates (before user deletion cascades their notifications)
+    const teammateIds = (teammates ?? []).map((m) => m.id)
+    if (teammateIds.length > 0) {
+      await supabaseAdmin.from('notifications').insert(
+        teammateIds.map((id) => ({
+          user_id: id,
+          type: 'member_left' as const,
+          message: `${displayName} has left ${teamInfo?.name ?? 'the team'}.`,
+        }))
+      )
     }
   }
 

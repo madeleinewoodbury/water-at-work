@@ -182,19 +182,25 @@ export async function requestToJoin(teamId: string): Promise<ActionState> {
   }
 
   // Notify team admins about the join request
-  const { data: requesterProfile } = await supabase
-    .from('users')
-    .select('display_name, email')
-    .eq('id', user.id)
-    .single()
+  const [{ data: requesterProfile }, { data: admins }, { data: teamInfo }] = await Promise.all([
+    supabase
+      .from('users')
+      .select('display_name, email')
+      .eq('id', user.id)
+      .single(),
+    supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('team_role', 'admin'),
+    supabaseAdmin
+      .from('teams')
+      .select('slug')
+      .eq('id', teamId)
+      .single(),
+  ])
 
   const requesterName = requesterProfile?.display_name || requesterProfile?.email?.split('@')[0] || 'Someone'
-
-  const { data: admins } = await supabaseAdmin
-    .from('users')
-    .select('id')
-    .eq('team_id', teamId)
-    .eq('team_role', 'admin')
 
   if (admins && admins.length > 0) {
     await supabaseAdmin.from('notifications').insert(
@@ -202,6 +208,7 @@ export async function requestToJoin(teamId: string): Promise<ActionState> {
         user_id: admin.id,
         type: 'join_request' as const,
         message: `${requesterName} has requested to join your team.`,
+        link: teamInfo?.slug ? `/teams/${teamInfo.slug}` : null,
       }))
     )
   }
@@ -271,13 +278,46 @@ export async function approveRequest(requestId: string): Promise<ActionState> {
 
   if (updateError) return { error: updateError.message }
 
-  // Add the requester to the team (admin client — RLS only allows self-updates)
-  const { error: memberError } = await supabaseAdmin
+  // Add the requester to the team (admin client — RLS only allows self-updates).
+  // Split into two updates so Supabase real-time delivers the second event to
+  // dashboards filtering on team_id — the first update sets team_id (old record
+  // has null, may not match the filter), the second fires with team_id already set.
+  const { error: teamError2 } = await supabaseAdmin
     .from('users')
-    .update({ team_id: request.team_id, team_role: 'member' })
+    .update({ team_id: request.team_id })
     .eq('id', request.requester_user_id)
 
-  if (memberError) return { error: memberError.message }
+  if (teamError2) return { error: teamError2.message }
+
+  const { error: roleError } = await supabaseAdmin
+    .from('users')
+    .update({ team_role: 'member' })
+    .eq('id', request.requester_user_id)
+
+  if (roleError) return { error: roleError.message }
+
+  // Carry over today's activity so it appears on the team dashboard
+  const today = new Date().toISOString().split('T')[0]
+  await Promise.all([
+    supabaseAdmin
+      .from('intake_logs')
+      .update({ team_id: request.team_id })
+      .eq('user_id', request.requester_user_id)
+      .eq('date', today)
+      .is('team_id', null),
+    supabaseAdmin
+      .from('opt_outs')
+      .update({ team_id: request.team_id })
+      .eq('user_id', request.requester_user_id)
+      .eq('date', today)
+      .is('team_id', null),
+    supabaseAdmin
+      .from('daily_goal_overrides')
+      .update({ team_id: request.team_id })
+      .eq('user_id', request.requester_user_id)
+      .eq('date', today)
+      .is('team_id', null),
+  ])
 
   // Notify the requester that they've been accepted
   const { data: team } = await supabaseAdmin
@@ -385,6 +425,13 @@ export async function kickMember(userId: string): Promise<ActionState> {
     return { error: 'This user is not on your team' }
   }
 
+  // Fetch team name for the notification
+  const { data: team } = await supabaseAdmin
+    .from('teams')
+    .select('name')
+    .eq('id', adminProfile.team_id)
+    .single()
+
   // Admin client — RLS only allows users to update their own row
   const { error } = await supabaseAdmin
     .from('users')
@@ -392,6 +439,13 @@ export async function kickMember(userId: string): Promise<ActionState> {
     .eq('id', userId)
 
   if (error) return { error: error.message }
+
+  // Notify the kicked member
+  await supabaseAdmin.from('notifications').insert({
+    user_id: userId,
+    type: 'member_kicked',
+    message: `You have been removed from ${team?.name ?? 'the team'}.`,
+  })
 
   revalidatePath('/teams')
   revalidateTag(`team-users-${adminProfile.team_id}`, { expire: 0 })
@@ -416,6 +470,15 @@ export async function leaveTeam(): Promise<ActionState> {
 
   const teamId = profile.team_id
 
+  // Collect info for notifications before making changes
+  const [{ data: userProfile }, { data: teamInfo }, { data: allMembers }] = await Promise.all([
+    supabase.from('users').select('display_name, email').eq('id', user.id).single(),
+    supabaseAdmin.from('teams').select('name').eq('id', teamId).single(),
+    supabaseAdmin.from('users').select('id').eq('team_id', teamId).neq('id', user.id),
+  ])
+
+  const displayName = userProfile?.display_name || userProfile?.email?.split('@')[0] || 'A teammate'
+
   if (profile.team_role === 'admin') {
     // Check if other members exist
     const { data: members } = await supabase
@@ -435,13 +498,17 @@ export async function leaveTeam(): Promise<ActionState> {
 
       if (promoteError) return { error: promoteError.message }
     } else {
-      // Sole member — delete the team
+      // Sole member — delete the team (no one left to notify)
       const { error: deleteError } = await supabase
         .from('teams')
         .delete()
         .eq('id', teamId)
 
       if (deleteError) return { error: deleteError.message }
+
+      revalidatePath('/teams')
+      revalidateTag(`team-users-${teamId}`, { expire: 0 })
+      redirect('/teams')
     }
   }
 
@@ -453,12 +520,30 @@ export async function leaveTeam(): Promise<ActionState> {
 
   if (error) return { error: error.message }
 
+  // Notify remaining team members
+  const otherMemberIds = (allMembers ?? []).map((m) => m.id)
+  if (otherMemberIds.length > 0) {
+    await supabaseAdmin.from('notifications').insert(
+      otherMemberIds.map((memberId) => ({
+        user_id: memberId,
+        type: 'member_left' as const,
+        message: `${displayName} has left ${teamInfo?.name ?? 'the team'}.`,
+      }))
+    )
+  }
+
   revalidatePath('/teams')
   revalidateTag(`team-users-${teamId}`, { expire: 0 })
   redirect('/teams')
 }
 
-export async function deleteTeam(): Promise<ActionState> {
+export async function deleteTeam(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const confirmation = formData.get('confirmation')
+  if (confirmation !== 'DELETE') return { error: 'Type DELETE to confirm' }
+
   const supabase = await createClient()
   const {
     data: { user },
