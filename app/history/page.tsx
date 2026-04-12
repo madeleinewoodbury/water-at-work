@@ -116,9 +116,15 @@ export default async function HistoryPage({
       return createdAt.slice(0, 10) <= date
     }
 
-    // Group logs by date
+    const currentMemberIds = new Set((allUsers ?? []).map((u) => u.id))
+
+    // Group logs by date. For the current day, ignore logs from users who are
+    // no longer on the team so today's totals reflect the current roster.
     const logsByDate = new Map<string, { user_id: string; ounces: number }[]>()
     for (const log of allLogs ?? []) {
+      if (log.date === todayStr && !currentMemberIds.has(log.user_id)) {
+        continue
+      }
       const arr = logsByDate.get(log.date) ?? []
       arr.push({ user_id: log.user_id, ounces: log.ounces })
       logsByDate.set(log.date, arr)
@@ -148,7 +154,12 @@ export default async function HistoryPage({
         const members = Object.entries(userTotals)
           .map(([uid, oz]) => {
             const u = userMap.get(uid)
-            return { name: u ? getDisplayName(u) : 'Unknown', ounces: oz }
+            return {
+              id: uid,
+              name: u ? getDisplayName(u) : 'Former teammate',
+              ounces: oz,
+              formerMember: !u,
+            }
           })
           .sort((a, b) => b.ounces - a.ounces)
 

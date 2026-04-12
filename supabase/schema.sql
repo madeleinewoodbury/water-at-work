@@ -216,6 +216,8 @@ CREATE TABLE public.intake_logs (
 
 -- Efficient look-up of a single user's entries for a given date
 CREATE INDEX intake_logs_user_date_idx ON public.intake_logs (user_id, date);
+-- Cross-user date-range queries
+CREATE INDEX intake_logs_date_idx ON public.intake_logs (date);
 -- Team-scoped queries
 CREATE INDEX intake_logs_team_date_idx ON public.intake_logs (team_id, date) WHERE team_id IS NOT NULL;
 
@@ -291,6 +293,8 @@ CREATE TABLE public.opt_outs (
 
 CREATE INDEX opt_outs_user_start_end_idx
   ON public.opt_outs (user_id, start_date, end_date);
+-- Cross-user date-range queries
+CREATE INDEX opt_outs_date_range_idx ON public.opt_outs (start_date, end_date);
 CREATE INDEX opt_outs_team_dates_idx
   ON public.opt_outs (team_id, start_date, end_date) WHERE team_id IS NOT NULL;
 
@@ -380,6 +384,10 @@ CREATE TABLE public.daily_goal_overrides (
 
 CREATE INDEX daily_goal_overrides_team_date_idx
   ON public.daily_goal_overrides (team_id, date) WHERE team_id IS NOT NULL;
+-- Covering index for date-based goal lookups
+CREATE INDEX daily_goal_overrides_date_idx
+  ON public.daily_goal_overrides (date)
+  INCLUDE (user_id, daily_goal);
 
 ALTER TABLE public.daily_goal_overrides ENABLE ROW LEVEL SECURITY;
 

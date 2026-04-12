@@ -27,6 +27,7 @@ const testUsers = [
 const INTAKE_AMOUNTS = [8, 12, 16, 24]
 const TODAY_AMOUNTS = [4, 8, 8, 12] // lighter amounts for today (partial day)
 const HISTORY_DAYS = 21
+const USER_CREATED_DAYS_AGO = 21
 
 /** Delete all existing auth users (cascades to public.users and intake_logs) */
 async function reset() {
@@ -94,6 +95,8 @@ function generateIntakeLogs(userId: string, userIndex: number) {
 
 async function seed() {
   await reset()
+  const seededUserCreatedAt = new Date()
+  seededUserCreatedAt.setDate(seededUserCreatedAt.getDate() - USER_CREATED_DAYS_AGO)
 
   // Create users
   console.log('Creating users...')
@@ -116,10 +119,13 @@ async function seed() {
     console.log(`  created  ${user.email}`)
     createdUserIds.push({ id: data.user.id, email: user.email, index: i })
 
-    // Update display_name directly in public.users
+    // Keep seeded users old enough for backfilled history calculations.
     await supabase
       .from('users')
-      .update({ display_name: user.display_name })
+      .update({
+        display_name: user.display_name,
+        created_at: seededUserCreatedAt.toISOString(),
+      })
       .eq('id', data.user.id)
   }
 
