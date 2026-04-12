@@ -1,7 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { getDisplayName } from '@/lib/utils'
 import MemberList from '@/components/teams/MemberList'
 import JoinRequestList from '@/components/teams/JoinRequestList'
 import TeamDangerZone from '@/components/teams/TeamDangerZone'
@@ -40,32 +39,23 @@ export default async function TeamDetailPage({
   const isUserTeam = profile?.team_id === team.id
   const isAdmin = isUserTeam && profile?.team_role === 'admin'
   const isMember = isUserTeam && profile?.team_role === 'member'
-  const canViewMemberEmails = isUserTeam
 
-  // Fetch team members (omit email for non-members)
-  const { data: members } = canViewMemberEmails
-    ? await supabaseAdmin
-      .from('users')
-      .select('id, email, display_name, avatar_url, team_role, created_at')
-      .eq('team_id', team.id)
-      .order('created_at', { ascending: true })
-    : await supabaseAdmin
-      .from('users')
-      .select('id, display_name, avatar_url, team_role, created_at')
-      .eq('team_id', team.id)
-      .order('created_at', { ascending: true })
+  // Fetch team members without exposing emails in the team overview UI.
+  const { data: members } = await supabaseAdmin
+    .from('users')
+    .select('id, display_name, avatar_url, team_role, created_at')
+    .eq('team_id', team.id)
+    .order('created_at', { ascending: true })
 
   const memberList = (members ?? []).map((m: {
     id: string
-    email?: string | null
     display_name: string | null
     avatar_url: string | null
     team_role: string | null
     created_at: string
   }) => ({
     id: m.id,
-    displayName: getDisplayName({ display_name: m.display_name, email: m.email ?? '' }),
-    email: canViewMemberEmails ? (m.email ?? null) : null,
+    displayName: m.display_name?.trim() || 'Teammate',
     avatarUrl: m.avatar_url,
     teamRole: m.team_role as string,
     createdAt: m.created_at,
@@ -75,7 +65,6 @@ export default async function TeamDetailPage({
   let pendingRequests: {
     id: string
     displayName: string
-    email: string
     avatarUrl: string | null
     createdAt: string
   }[] = []
@@ -92,7 +81,7 @@ export default async function TeamDetailPage({
       const requesterIds = requests.map((r) => r.requester_user_id)
       const { data: requesters } = await supabaseAdmin
         .from('users')
-        .select('id, email, display_name, avatar_url')
+        .select('id, display_name, avatar_url')
         .in('id', requesterIds)
 
       const requesterMap = new Map(
@@ -103,8 +92,7 @@ export default async function TeamDetailPage({
         const requester = requesterMap.get(r.requester_user_id)
         return {
           id: r.id,
-          displayName: requester ? getDisplayName(requester) : 'Unknown',
-          email: requester?.email ?? '',
+          displayName: requester?.display_name?.trim() || 'Teammate',
           avatarUrl: requester?.avatar_url ?? null,
           createdAt: r.created_at,
         }
@@ -145,7 +133,6 @@ export default async function TeamDetailPage({
         currentUserId={user.id}
         isAdmin={isAdmin}
         isMember={isMember}
-        showEmails={canViewMemberEmails}
         teamId={team.id}
         canJoin={canJoin}
         userPendingRequestId={userPendingRequestId}

@@ -17,11 +17,12 @@ const ICON_MAP: Record<string, LucideIcon> = {
 
 type Props = {
   avatarUrl: string | null
-  email: string
+  email?: string
+  fallbackText?: string
   size?: number
 }
 
-export default function AvatarDisplay({ avatarUrl, email, size = 32 }: Props) {
+export default function AvatarDisplay({ avatarUrl, email, fallbackText, size = 32 }: Props) {
   if (avatarUrl?.startsWith('icon:')) {
     const preset = getIconPreset(avatarUrl.slice(5))
     if (preset) {
@@ -37,7 +38,8 @@ export default function AvatarDisplay({ avatarUrl, email, size = 32 }: Props) {
   }
 
   const resolved = resolveAvatarUrl(avatarUrl, email)
-  const initials = (email.split('@')[0] || email).charAt(0).toUpperCase()
+  const fallbackSource = fallbackText?.trim() || email?.split('@')[0] || '?'
+  const initials = fallbackSource.charAt(0).toUpperCase()
 
   return (
     <div

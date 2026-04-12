@@ -8,7 +8,6 @@ import AvatarDisplay from '@/components/AvatarDisplay'
 type Request = {
   id: string
   displayName: string
-  email: string
   avatarUrl: string | null
   createdAt: string
 }
@@ -38,13 +37,12 @@ function RequestRow({ request }: { request: Request }) {
         <div className="h-8 w-8 shrink-0">
           <AvatarDisplay
             avatarUrl={request.avatarUrl}
-            email={request.email}
+            fallbackText={request.displayName}
             size={32}
           />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{request.displayName}</p>
-          <p className="truncate text-xs text-muted-foreground">{request.email}</p>
         </div>
       </div>
       <div className="flex shrink-0 gap-2">
