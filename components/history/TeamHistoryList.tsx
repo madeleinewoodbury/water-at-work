@@ -12,7 +12,7 @@ type TeamDay = {
   teamTotal: number
   teamGoal: number
   metGoal: boolean
-  members: { name: string; ounces: number }[]
+  members: { id: string; name: string; ounces: number; formerMember?: boolean }[]
 }
 
 type Props = { teamDays: TeamDay[] }

@@ -187,6 +187,13 @@ export async function updateDailyGoal(
     }
   }
 
+  // Fetch team_id for cache tag revalidation
+  const { data: teamProfile } = await supabase
+    .from('users')
+    .select('team_id')
+    .eq('id', user.id)
+    .single()
+
   const { error } = await supabase
     .from('users')
     .update({ daily_goal: normalizedGoal })
@@ -194,7 +201,9 @@ export async function updateDailyGoal(
 
   if (error) return { error: error.message }
 
-  revalidateTag('team-users', { expire: 0 })
+  if (teamProfile?.team_id) {
+    revalidateTag(`team-users-${teamProfile.team_id}`, { expire: 0 })
+  }
   revalidatePath('/dashboard')
   return { success: 'Daily goal updated' }
 }
@@ -255,8 +264,65 @@ export async function deleteAccount(
 
   if (!user) return { error: 'Not authenticated' }
 
+  // Handle team admin succession and notify teammates before deleting
+  const { data: profile } = await supabase
+    .from('users')
+    .select('team_id, team_role, display_name, email')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.team_id) {
+    const [{ data: teammates }, { data: teamInfo }] = await Promise.all([
+      supabaseAdmin
+        .from('users')
+        .select('id, created_at')
+        .eq('team_id', profile.team_id)
+        .neq('id', user.id)
+        .order('created_at', { ascending: true }),
+      supabaseAdmin
+        .from('teams')
+        .select('name')
+        .eq('id', profile.team_id)
+        .single(),
+    ])
+
+    const displayName = profile.display_name || profile.email?.split('@')[0] || 'A teammate'
+
+    if (profile.team_role === 'admin') {
+      if (teammates && teammates.length > 0) {
+        // Promote oldest remaining member to admin
+        await supabaseAdmin
+          .from('users')
+          .update({ team_role: 'admin' })
+          .eq('id', teammates[0].id)
+      } else {
+        // Sole member — delete the team
+        await supabaseAdmin
+          .from('teams')
+          .delete()
+          .eq('id', profile.team_id)
+      }
+    }
+
+    // Notify remaining teammates (before user deletion cascades their notifications)
+    const teammateIds = (teammates ?? []).map((m) => m.id)
+    if (teammateIds.length > 0) {
+      await supabaseAdmin.from('notifications').insert(
+        teammateIds.map((id) => ({
+          user_id: id,
+          type: 'member_left' as const,
+          message: `${displayName} has left ${teamInfo?.name ?? 'the team'}.`,
+        }))
+      )
+    }
+  }
+
   const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id)
   if (error) return { error: error.message }
+
+  if (profile?.team_id) {
+    revalidateTag(`team-users-${profile.team_id}`, { expire: 0 })
+  }
 
   await supabase.auth.signOut()
   revalidatePath('/', 'layout')
@@ -290,11 +356,18 @@ export async function addOptOut(
     return { error: 'Start date cannot be in the past' }
   }
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('team_id')
+    .eq('id', user.id)
+    .single()
+
   const { error } = await supabase.from('opt_outs').insert({
     user_id: user.id,
     opted_out_by: user.id,
     start_date: startDate,
     end_date: endDate,
+    team_id: profile?.team_id ?? null,
   })
 
   if (error) return { error: error.message }

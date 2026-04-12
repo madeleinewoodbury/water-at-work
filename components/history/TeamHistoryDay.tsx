@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, Check } from 'lucide-react'
 import { formatOneDecimal, formatWaterAmount } from '@/lib/utils'
 
-type Member = { name: string; ounces: number }
+type Member = { id: string; name: string; ounces: number; formerMember?: boolean }
 
 type Props = {
   date: string
@@ -97,10 +97,10 @@ export default function TeamHistoryDay({
             <ul className="space-y-1">
               {members.map((m) => (
                 <li
-                  key={m.name}
-                  className="flex items-center justify-between text-sm"
+                  key={m.id}
+                  className={`flex items-center justify-between text-sm ${m.formerMember ? 'text-muted-foreground/80' : ''}`}
                 >
-                  <span className="text-foreground">{m.name}</span>
+                  <span className={m.formerMember ? 'italic' : 'text-foreground'}>{m.name}</span>
                   <span className="tabular-nums text-muted-foreground">
                     {formatOneDecimal(m.ounces)} oz
                   </span>

@@ -26,11 +26,13 @@ export default async function OnboardingPage({
 
   const { data: profile } = await supabase
     .from('users')
-    .select('display_name')
+    .select('display_name, team_id')
     .eq('id', user.id)
     .single()
 
-  if (profile?.display_name) redirect('/dashboard')
+  if (profile?.display_name) {
+    redirect(profile.team_id ? '/dashboard' : '/teams')
+  }
 
   const githubAvatarUrl =
     user.app_metadata?.provider === 'github'
