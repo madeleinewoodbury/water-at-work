@@ -40,18 +40,32 @@ export default async function TeamDetailPage({
   const isUserTeam = profile?.team_id === team.id
   const isAdmin = isUserTeam && profile?.team_role === 'admin'
   const isMember = isUserTeam && profile?.team_role === 'member'
+  const canViewMemberEmails = isUserTeam
 
-  // Fetch team members
-  const { data: members } = await supabaseAdmin
-    .from('users')
-    .select('id, email, display_name, avatar_url, team_role, created_at')
-    .eq('team_id', team.id)
-    .order('created_at', { ascending: true })
+  // Fetch team members (omit email for non-members)
+  const { data: members } = canViewMemberEmails
+    ? await supabaseAdmin
+      .from('users')
+      .select('id, email, display_name, avatar_url, team_role, created_at')
+      .eq('team_id', team.id)
+      .order('created_at', { ascending: true })
+    : await supabaseAdmin
+      .from('users')
+      .select('id, display_name, avatar_url, team_role, created_at')
+      .eq('team_id', team.id)
+      .order('created_at', { ascending: true })
 
-  const memberList = (members ?? []).map((m) => ({
+  const memberList = (members ?? []).map((m: {
+    id: string
+    email?: string | null
+    display_name: string | null
+    avatar_url: string | null
+    team_role: string | null
+    created_at: string
+  }) => ({
     id: m.id,
-    displayName: getDisplayName(m),
-    email: m.email,
+    displayName: getDisplayName({ display_name: m.display_name, email: m.email ?? '' }),
+    email: canViewMemberEmails ? (m.email ?? null) : null,
     avatarUrl: m.avatar_url,
     teamRole: m.team_role as string,
     createdAt: m.created_at,
@@ -115,7 +129,7 @@ export default async function TeamDetailPage({
   const canJoin = !profile?.team_id && !userPendingRequestId
 
   return (
-    <main className="mx-auto w-full max-w-[800px] space-y-6 px-6 py-6">
+    <main className="mx-auto w-full max-w-200 space-y-6 px-6 py-6">
       <TeamHeader
         team={team}
         isAdmin={isAdmin}
@@ -131,6 +145,7 @@ export default async function TeamDetailPage({
         currentUserId={user.id}
         isAdmin={isAdmin}
         isMember={isMember}
+        showEmails={canViewMemberEmails}
         teamId={team.id}
         canJoin={canJoin}
         userPendingRequestId={userPendingRequestId}

@@ -9,7 +9,7 @@ import AvatarDisplay from '@/components/AvatarDisplay'
 type Member = {
   id: string
   displayName: string
-  email: string
+  email: string | null
   avatarUrl: string | null
   teamRole: string
   createdAt: string
@@ -20,6 +20,7 @@ type Props = {
   currentUserId: string
   isAdmin: boolean
   isMember: boolean
+  showEmails: boolean
   teamId: string
   canJoin: boolean
   userPendingRequestId: string | null
@@ -29,10 +30,12 @@ function MemberRow({
   member,
   currentUserId,
   isAdmin,
+  showEmails,
 }: {
   member: Member
   currentUserId: string
   isAdmin: boolean
+  showEmails: boolean
 }) {
   const [isPending, startTransition] = useTransition()
   const isCurrentUser = member.id === currentUserId
@@ -49,7 +52,7 @@ function MemberRow({
         <div className="h-8 w-8 shrink-0">
           <AvatarDisplay
             avatarUrl={member.avatarUrl}
-            email={member.email}
+            email={member.email ?? ''}
             size={32}
           />
         </div>
@@ -65,7 +68,9 @@ function MemberRow({
               <Shield className="h-3.5 w-3.5 shrink-0 text-primary" />
             )}
           </div>
-          <p className="truncate text-xs text-muted-foreground">{member.email}</p>
+          {showEmails && member.email && (
+            <p className="truncate text-xs text-muted-foreground">{member.email}</p>
+          )}
         </div>
       </div>
 
@@ -88,6 +93,7 @@ export default function MemberList({
   currentUserId,
   isAdmin,
   isMember: _isMember,
+  showEmails,
   teamId,
   canJoin,
   userPendingRequestId,
@@ -121,6 +127,7 @@ export default function MemberList({
               member={member}
               currentUserId={currentUserId}
               isAdmin={isAdmin}
+              showEmails={showEmails}
             />
           ))}
         </div>

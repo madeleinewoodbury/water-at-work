@@ -1,0 +1,1 @@
+export const TEAM_OPTOUT_CUTOFF_HOUR = 11

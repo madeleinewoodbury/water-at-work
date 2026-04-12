@@ -21,6 +21,7 @@ DROP TABLE IF EXISTS public.teams              CASCADE;
 
 DROP TRIGGER  IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
+DROP FUNCTION IF EXISTS public.prevent_authenticated_membership_self_update();
 DROP FUNCTION IF EXISTS public.deactivate_inactive_users();
 DROP FUNCTION IF EXISTS public.get_auth_user_team_id();
 DROP FUNCTION IF EXISTS public.is_current_user_team_admin(UUID);
@@ -105,6 +106,32 @@ $$;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Block direct authenticated self-updates to membership fields.
+-- Team membership and role changes must flow through trusted server paths.
+CREATE OR REPLACE FUNCTION public.prevent_authenticated_membership_self_update()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF COALESCE(auth.role(), '') = 'authenticated'
+    AND auth.uid() = NEW.id
+    AND (
+      OLD.team_id IS DISTINCT FROM NEW.team_id
+      OR OLD.team_role IS DISTINCT FROM NEW.team_role
+    ) THEN
+    RAISE EXCEPTION 'Direct membership updates are not allowed.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER users_block_membership_self_update
+  BEFORE UPDATE ON public.users
+  FOR EACH ROW EXECUTE FUNCTION public.prevent_authenticated_membership_self_update();
 
 -- Partial index for fast lookup of inactive users
 CREATE INDEX users_inactive_idx ON public.users (id) WHERE is_active = false;
@@ -282,10 +309,17 @@ CREATE POLICY "Team members can read team opt_outs"
     AND team_id = public.get_auth_user_team_id()
   );
 
-CREATE POLICY "Users can insert opt_out as actor"
+CREATE POLICY "Users can insert own opt_out"
   ON public.opt_outs FOR INSERT
   TO authenticated
-  WITH CHECK (auth.uid() = opted_out_by);
+  WITH CHECK (
+    auth.uid() = user_id
+    AND auth.uid() = opted_out_by
+    AND (
+      team_id IS NULL
+      OR team_id = public.get_auth_user_team_id()
+    )
+  );
 
 CREATE POLICY "Users can delete own opt_out"
   ON public.opt_outs FOR DELETE

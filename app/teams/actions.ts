@@ -81,7 +81,7 @@ export async function createTeam(
   if (teamError || !team) return { error: teamError?.message ?? 'Failed to create team' }
 
   // Set user as admin of the new team
-  const { error: updateError } = await supabase
+  const { error: updateError } = await supabaseAdmin
     .from('users')
     .update({ team_id: team.id, team_role: 'admin' })
     .eq('id', user.id)
@@ -513,7 +513,7 @@ export async function leaveTeam(): Promise<ActionState> {
   }
 
   // Remove user from team
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('users')
     .update({ team_id: null, team_role: null })
     .eq('id', user.id)

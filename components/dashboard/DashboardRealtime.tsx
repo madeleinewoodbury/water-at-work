@@ -5,13 +5,12 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { getTeamProgressPercent, getTeamStatus } from '@/lib/team-status'
 import { getDisplayName } from '@/lib/utils'
+import { TEAM_OPTOUT_CUTOFF_HOUR } from '@/lib/dashboard-constants'
 import { optOutUser, undoTeamOptOut } from '@/app/dashboard/actions'
 import WaterInputCard from '@/components/dashboard/WaterInputCard'
 import TeamProgressCard from '@/components/dashboard/TeamProgressCard'
 import UserListCard from '@/components/dashboard/UserListCard'
 import WowOverlay, { type WowEvent, pickRandomGif } from '@/components/dashboard/WowOverlay'
-
-const CUTOFF_HOUR = 12
 
 type IntakeLog = {
   id: string
@@ -69,6 +68,7 @@ export default function DashboardRealtime({ initialData }: Props) {
   const [todayOverrides, setTodayOverrides] = useState(initialData.todayOverrides)
   const [isCurrentUserActive, setIsCurrentUserActive] = useState(initialData.isCurrentUserActive)
   const [wowQueue, setWowQueue] = useState<WowEvent[]>([])
+  const [teamActionError, setTeamActionError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   // Sync state when server re-fetches fresh data (e.g. after navigation)
@@ -82,13 +82,13 @@ export default function DashboardRealtime({ initialData }: Props) {
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
 
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours())
-  const [isPastCutoff, setIsPastCutoff] = useState(() => currentHour >= CUTOFF_HOUR)
+  const [isPastCutoff, setIsPastCutoff] = useState(() => currentHour >= TEAM_OPTOUT_CUTOFF_HOUR)
 
   useEffect(() => {
     const check = () => {
       const hour = new Date().getHours()
       setCurrentHour((prev) => (prev === hour ? prev : hour))
-      setIsPastCutoff((prev) => prev || hour >= CUTOFF_HOUR)
+      setIsPastCutoff((prev) => prev || hour >= TEAM_OPTOUT_CUTOFF_HOUR)
     }
     const interval = setInterval(check, 60_000)
     return () => clearInterval(interval)
@@ -398,7 +398,12 @@ export default function DashboardRealtime({ initialData }: Props) {
   const handleOptOutUser = useCallback(
     (targetUserId: string) => {
       startTransition(async () => {
-        await optOutUser(targetUserId, timezone)
+        const result = await optOutUser(targetUserId, timezone)
+        if (result?.error) {
+          setTeamActionError(result.error)
+          return
+        }
+        setTeamActionError(null)
       })
     },
     [timezone]
@@ -406,7 +411,12 @@ export default function DashboardRealtime({ initialData }: Props) {
 
   const handleUndoTeamOptOut = useCallback((optOutId: string) => {
     startTransition(async () => {
-      await undoTeamOptOut(optOutId)
+      const result = await undoTeamOptOut(optOutId)
+      if (result?.error) {
+        setTeamActionError(result.error)
+        return
+      }
+      setTeamActionError(null)
     })
   }, [])
 
@@ -419,6 +429,11 @@ export default function DashboardRealtime({ initialData }: Props) {
       {!isCurrentUserActive && (
         <div className="col-span-full rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
           You&apos;ve been marked inactive due to 7 days without logging. Log water to rejoin the team.
+        </div>
+      )}
+      {teamActionError && (
+        <div className="col-span-full rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {teamActionError}
         </div>
       )}
       <WaterInputCard

@@ -1,6 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { TEAM_OPTOUT_CUTOFF_HOUR } from '@/lib/dashboard-constants'
 
 type ActionState = { error: string } | null
 
@@ -138,8 +140,6 @@ export async function optOutToday(): Promise<ActionState> {
   return null
 }
 
-const CUTOFF_HOUR = 12
-
 export async function optOutUser(
   targetUserId: string,
   timezone: string
@@ -170,8 +170,8 @@ export async function optOutUser(
     10
   )
 
-  if (currentHour < CUTOFF_HOUR) {
-    return { error: `You can only sit out others after ${CUTOFF_HOUR}:00 PM` }
+  if (currentHour < TEAM_OPTOUT_CUTOFF_HOUR) {
+    return { error: `You can only sit out others after ${TEAM_OPTOUT_CUTOFF_HOUR}:00 PM` }
   }
 
   // Check target has zero water logged today
@@ -199,7 +199,7 @@ export async function optOutUser(
     return { error: 'This user is already sitting out today' }
   }
 
-  const { error } = await supabase.from('opt_outs').insert({
+  const { error } = await supabaseAdmin.from('opt_outs').insert({
     user_id: targetUserId,
     opted_out_by: user.id,
     start_date: today,
