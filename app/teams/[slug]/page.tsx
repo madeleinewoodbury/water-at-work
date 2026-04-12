@@ -43,7 +43,7 @@ export default async function TeamDetailPage({
   // Fetch team members without exposing emails in the team overview UI.
   const { data: members } = await supabaseAdmin
     .from('users')
-    .select('id, display_name, avatar_url, team_role, created_at')
+    .select('id, display_name, avatar_url, team_role, is_active, created_at')
     .eq('team_id', team.id)
     .order('created_at', { ascending: true })
 
@@ -52,12 +52,14 @@ export default async function TeamDetailPage({
     display_name: string | null
     avatar_url: string | null
     team_role: string | null
+    is_active: boolean
     created_at: string
   }) => ({
     id: m.id,
     displayName: m.display_name?.trim() || 'Teammate',
     avatarUrl: m.avatar_url,
     teamRole: m.team_role as string,
+    isActive: m.is_active,
     createdAt: m.created_at,
   }))
 

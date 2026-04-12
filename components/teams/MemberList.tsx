@@ -11,6 +11,7 @@ type Member = {
   displayName: string
   avatarUrl: string | null
   teamRole: string
+  isActive: boolean
   createdAt: string
 }
 
@@ -43,7 +44,7 @@ function MemberRow({
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 py-2">
+    <div className={`flex items-center justify-between gap-3 py-2 ${member.isActive ? '' : 'opacity-60'}`}>
       <div className="flex items-center gap-3 min-w-0">
         <div className="h-8 w-8 shrink-0">
           <AvatarDisplay
@@ -62,6 +63,11 @@ function MemberRow({
             </p>
             {member.teamRole === 'admin' && (
               <Shield className="h-3.5 w-3.5 shrink-0 text-primary" />
+            )}
+            {!member.isActive && (
+              <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Inactive
+              </span>
             )}
           </div>
         </div>
