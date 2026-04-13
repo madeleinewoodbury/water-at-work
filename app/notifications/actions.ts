@@ -53,3 +53,20 @@ export async function deleteNotification(notificationId: string) {
 
   revalidatePath('/', 'layout')
 }
+
+export async function deleteReadNotifications() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return
+
+  await supabase
+    .from('notifications')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('is_read', true)
+
+  revalidatePath('/', 'layout')
+}
