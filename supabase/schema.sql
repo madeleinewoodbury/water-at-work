@@ -518,7 +518,33 @@ CREATE POLICY "Users can delete own notifications"
 
 
 -- ============================================================
--- 11. Real-time
+-- 11. Notification expiry function
+--     Deletes notifications older than 30 days.
+--     Called daily by /api/cron/expire-notifications.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.delete_expired_notifications()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  deleted_count integer;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM public.notifications
+    WHERE created_at < NOW() - INTERVAL '30 days'
+    RETURNING id
+  )
+  SELECT count(*) INTO deleted_count FROM deleted;
+  RETURN deleted_count;
+END;
+$$;
+
+
+-- ============================================================
+-- 12. Real-time
 --     Enable postgres_changes subscriptions on tables used by
 --     the live dashboard and notification bell.
 -- ============================================================

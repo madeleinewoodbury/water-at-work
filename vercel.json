@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/expire-notifications",
+      "schedule": "0 5 * * *"
+    },
+    {
       "path": "/api/cron/deactivate-inactive",
       "schedule": "0 6 * * *"
     }

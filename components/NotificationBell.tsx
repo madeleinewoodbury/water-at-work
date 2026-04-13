@@ -9,6 +9,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   deleteNotification,
+  deleteReadNotifications,
 } from '@/app/notifications/actions'
 
 type Notification = {
@@ -41,6 +42,7 @@ export default function NotificationBell({ userId, initialNotifications }: Props
   const [isPending, startTransition] = useTransition()
 
   const unreadCount = notifications.filter((n) => !n.is_read).length
+  const hasRead = notifications.some((n) => n.is_read)
 
   useEffect(() => {
     const supabase = createClient()
@@ -97,6 +99,13 @@ export default function NotificationBell({ userId, initialNotifications }: Props
     })
   }
 
+  function handleClearRead() {
+    setNotifications((prev) => prev.filter((n) => !n.is_read))
+    startTransition(async () => {
+      await deleteReadNotifications()
+    })
+  }
+
   return (
     <Popover.Root>
       <Popover.Trigger
@@ -115,15 +124,26 @@ export default function NotificationBell({ userId, initialNotifications }: Props
           <Popover.Popup className="w-80 rounded-xl border border-border bg-popover shadow-lg shadow-black/10">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
-              {unreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllRead}
-                  disabled={isPending}
-                  className="cursor-pointer text-xs font-medium text-primary hover:text-primary/80 disabled:opacity-50"
-                >
-                  Mark all read
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllRead}
+                    disabled={isPending}
+                    className="cursor-pointer text-xs font-medium text-primary hover:text-primary/80 disabled:opacity-50"
+                  >
+                    Mark all read
+                  </button>
+                )}
+                {hasRead && (
+                  <button
+                    onClick={handleClearRead}
+                    disabled={isPending}
+                    className="cursor-pointer text-xs font-medium text-primary hover:text-primary/80 disabled:opacity-50"
+                  >
+                    Clear read
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="max-h-80 overflow-y-auto">
