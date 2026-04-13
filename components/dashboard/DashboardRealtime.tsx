@@ -53,13 +53,15 @@ type Props = {
     isCurrentUserActive: boolean
     teamId: string | null
     teamRole: string | null
+    teamName: string | null
+    teamSlug: string | null
   }
 }
 
 const MAX_WOW_QUEUE = 3
 
 export default function DashboardRealtime({ initialData }: Props) {
-  const { currentUserId, today, teamId } = initialData
+  const { currentUserId, today, teamId, teamName, teamSlug } = initialData
   const hasTeam = !!teamId
 
   const [teamUsers, setTeamUsers] = useState(initialData.teamUsers)
@@ -460,6 +462,8 @@ export default function DashboardRealtime({ initialData }: Props) {
             participantCount={dashboardData.activeUsers.length}
             totalMemberCount={teamUsers.length}
             teamGoal={dashboardData.teamGoal}
+            teamName={teamName}
+            teamSlug={teamSlug}
           />
           <UserListCard
             users={dashboardData.userList}

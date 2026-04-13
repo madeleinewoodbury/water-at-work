@@ -1,9 +1,10 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { Shield } from 'lucide-react'
 import { kickMember, requestToJoin, cancelRequest } from '@/app/teams/actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import AvatarDisplay from '@/components/AvatarDisplay'
 
 type Member = {
@@ -35,11 +36,13 @@ function MemberRow({
   isAdmin: boolean
 }) {
   const [isPending, startTransition] = useTransition()
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const isCurrentUser = member.id === currentUserId
 
   function handleKick() {
     startTransition(async () => {
       await kickMember(member.id)
+      setConfirmOpen(false)
     })
   }
 
@@ -74,14 +77,27 @@ function MemberRow({
       </div>
 
       {isAdmin && !isCurrentUser && (
-        <button
-          type="button"
-          onClick={handleKick}
-          disabled={isPending}
-          className="shrink-0 cursor-pointer rounded-lg border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-50"
-        >
-          {isPending ? 'Removing...' : 'Remove'}
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            disabled={isPending}
+            className="shrink-0 cursor-pointer rounded-lg border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-50"
+          >
+            {isPending ? 'Removing...' : 'Remove'}
+          </button>
+          <ConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            title={`Remove ${member.displayName}?`}
+            description="They will lose access to the team and its history."
+            confirmLabel="Remove"
+            pendingLabel="Removing..."
+            destructive
+            isPending={isPending}
+            onConfirm={handleKick}
+          />
+        </>
       )}
     </div>
   )

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { deleteTeam, leaveTeam } from '@/app/teams/actions'
 
 type Props = {
@@ -12,6 +13,8 @@ type Props = {
 
 export default function TeamDangerZone({ teamName, isMember, isSoleMember }: Props) {
   const [isPending, startTransition] = useTransition()
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -21,17 +24,27 @@ export default function TeamDangerZone({ teamName, isMember, isSoleMember }: Pro
     formData.set('confirmation', confirmation)
     startTransition(async () => {
       const result = await deleteTeam(null, formData)
-      if (result?.error) setError(result.error)
+      if (result?.error) {
+        setError(result.error)
+      } else {
+        setDeleteOpen(false)
+      }
     })
   }
 
   function handleLeave() {
-    if (!confirm('Are you sure you want to leave this team?')) {
-      return
-    }
     startTransition(async () => {
       await leaveTeam()
+      setLeaveOpen(false)
     })
+  }
+
+  function handleDeleteOpenChange(open: boolean) {
+    setDeleteOpen(open)
+    if (!open) {
+      setConfirmation('')
+      setError(null)
+    }
   }
 
   return (
@@ -49,7 +62,7 @@ export default function TeamDangerZone({ teamName, isMember, isSoleMember }: Pro
             </p>
             <button
               type="button"
-              onClick={handleLeave}
+              onClick={() => setLeaveOpen(true)}
               disabled={isPending}
               className="shrink-0 cursor-pointer rounded-lg border border-destructive px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-white disabled:opacity-50"
             >
@@ -68,7 +81,7 @@ export default function TeamDangerZone({ teamName, isMember, isSoleMember }: Pro
                 </div>
                 <button
                   type="button"
-                  onClick={handleLeave}
+                  onClick={() => setLeaveOpen(true)}
                   disabled={isPending}
                   className="shrink-0 cursor-pointer rounded-lg border border-destructive px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-white disabled:opacity-50"
                 >
@@ -77,40 +90,75 @@ export default function TeamDangerZone({ teamName, isMember, isSoleMember }: Pro
               </div>
             )}
             <div className={isSoleMember ? '' : 'border-t border-border pt-4'}>
-              <div className="space-y-3">
+              <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium">Delete Team</p>
                   <p className="text-xs text-muted-foreground">
-                    Permanently delete <span className="font-medium text-foreground">{teamName}</span>. This action cannot be undone. All members will be removed.
+                    Permanently delete <span className="font-medium text-foreground">{teamName}</span>. This action cannot be undone.
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <label htmlFor="delete-team-confirm" className="text-sm text-muted-foreground">
-                    Type <span className="font-mono font-semibold text-foreground">DELETE</span> to confirm
-                  </label>
-                  <input
-                    id="delete-team-confirm"
-                    type="text"
-                    value={confirmation}
-                    onChange={(e) => { setConfirmation(e.target.value); setError(null) }}
-                    placeholder="DELETE"
-                    className="block w-full rounded-md border border-border bg-background px-3 py-1.5 mt-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-destructive"
-                  />
-                </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
                 <button
                   type="button"
-                  onClick={handleDelete}
-                  disabled={confirmation !== 'DELETE' || isPending}
-                  className="cursor-pointer rounded-md border border-destructive/50 px-3 py-1.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
+                  onClick={() => setDeleteOpen(true)}
+                  disabled={isPending}
+                  className="shrink-0 cursor-pointer rounded-lg border border-destructive px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-white disabled:opacity-50"
                 >
-                  {isPending ? 'Deleting...' : 'Delete Team'}
+                  Delete Team
                 </button>
               </div>
             </div>
           </div>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={leaveOpen}
+        onOpenChange={setLeaveOpen}
+        title="Leave this team?"
+        description={
+          !isMember && !isSoleMember
+            ? 'You will lose access to team features and history. Admin role will pass to the oldest remaining member.'
+            : 'You will lose access to team features and history.'
+        }
+        confirmLabel="Leave"
+        pendingLabel="Leaving..."
+        destructive
+        isPending={isPending}
+        onConfirm={handleLeave}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={handleDeleteOpenChange}
+        title={`Delete ${teamName}?`}
+        description="This action cannot be undone. All members will be removed from the team."
+        body={
+          <div className="space-y-2">
+            <label htmlFor="delete-team-confirm" className="block text-sm text-muted-foreground">
+              Type <span className="font-mono font-semibold text-foreground">DELETE</span> to confirm
+            </label>
+            <input
+              id="delete-team-confirm"
+              type="text"
+              value={confirmation}
+              onChange={(e) => {
+                setConfirmation(e.target.value)
+                setError(null)
+              }}
+              placeholder="DELETE"
+              autoComplete="off"
+              className="block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-destructive"
+            />
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+        }
+        confirmLabel="Delete Team"
+        pendingLabel="Deleting..."
+        destructive
+        isPending={isPending}
+        confirmDisabled={confirmation !== 'DELETE'}
+        onConfirm={handleDelete}
+      />
     </Card>
   )
 }

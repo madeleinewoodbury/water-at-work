@@ -24,6 +24,12 @@ export default async function DashboardPage() {
   const teamRole = currentUserProfile?.team_role as string | null
   const hasTeam = !!teamId
 
+  const { data: teamInfo } = hasTeam
+    ? await supabase.from('teams').select('name, slug').eq('id', teamId).single()
+    : { data: null }
+  const teamName = (teamInfo?.name as string | undefined) ?? null
+  const teamSlug = (teamInfo?.slug as string | undefined) ?? null
+
   // Build queries — team-scoped when user has a team, personal-only otherwise
   const intakeLogsQuery = supabase
     .from('intake_logs')
@@ -90,6 +96,8 @@ export default async function DashboardPage() {
           isCurrentUserActive: currentUserProfile?.is_active !== false,
           teamId,
           teamRole,
+          teamName,
+          teamSlug,
         }}
       />
     </main>

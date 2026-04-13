@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import {
   Card,
   CardContent,
@@ -16,6 +17,8 @@ type Props = {
   participantCount: number
   totalMemberCount: number
   teamGoal: number
+  teamName: string | null
+  teamSlug: string | null
 }
 
 export default function TeamProgressCard({
@@ -24,6 +27,8 @@ export default function TeamProgressCard({
   participantCount,
   totalMemberCount,
   teamGoal,
+  teamName,
+  teamSlug,
 }: Props) {
   const allParticipating = participantCount === totalMemberCount
   const description = allParticipating
@@ -34,7 +39,18 @@ export default function TeamProgressCard({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
-          <CardTitle>Team Progress</CardTitle>
+          {teamName && teamSlug ? (
+            <CardTitle>
+              <Link
+                href={`/teams/${teamSlug}`}
+                className="hover:underline"
+              >
+                {teamName}
+              </Link>
+            </CardTitle>
+          ) : (
+            <CardTitle>Team Progress</CardTitle>
+          )}
           <p className={cn('text-xs font-normal', teamStatus.colorClass)}>
             {teamStatus.emoji} {teamStatus.label}
           </p>
