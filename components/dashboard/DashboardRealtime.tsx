@@ -11,6 +11,7 @@ import WaterInputCard from '@/components/dashboard/WaterInputCard'
 import TeamProgressCard from '@/components/dashboard/TeamProgressCard'
 import UserListCard from '@/components/dashboard/UserListCard'
 import WowOverlay, { type WowEvent, pickRandomGif } from '@/components/dashboard/WowOverlay'
+import TeamsAnnouncementBanner from '@/components/dashboard/TeamsAnnouncementBanner'
 
 type IntakeLog = {
   id: string
@@ -428,6 +429,7 @@ export default function DashboardRealtime({ initialData }: Props) {
 
   return (
     <>
+      <TeamsAnnouncementBanner />
       {!isCurrentUserActive && (
         <div className="col-span-full rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
           You&apos;ve been marked inactive due to 7 days without logging. Log water to rejoin the team.
