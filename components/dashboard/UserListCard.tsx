@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { cn, formatOneDecimal } from '@/lib/utils'
 import { UserX, Undo2 } from 'lucide-react'
 import {
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import AvatarDisplay from '@/components/AvatarDisplay'
 
 type User = {
@@ -90,10 +92,16 @@ export default function UserListCard({
   onUndoOptOut,
 }: Props) {
   const completedHours = getCompletedHours(new Date())
+  const [optOutTarget, setOptOutTarget] = useState<{ id: string; name: string } | null>(null)
 
   function handleOptOut(userId: string, displayName: string) {
-    if (!confirm(`Sit out ${displayName} for today?`)) return
-    onOptOutUser(userId)
+    setOptOutTarget({ id: userId, name: displayName })
+  }
+
+  function confirmOptOut() {
+    if (!optOutTarget) return
+    onOptOutUser(optOutTarget.id)
+    setOptOutTarget(null)
   }
 
   return (
@@ -179,6 +187,16 @@ export default function UserListCard({
           })}
         </ul>
       </CardContent>
+      <ConfirmDialog
+        open={optOutTarget !== null}
+        onOpenChange={(open) => { if (!open) setOptOutTarget(null) }}
+        title={optOutTarget ? `Sit out ${optOutTarget.name} for today?` : ''}
+        description="They'll be excluded from today's team total until they log water or opt back in."
+        confirmLabel="Sit out"
+        destructive
+        isPending={isPending}
+        onConfirm={confirmOptOut}
+      />
     </Card>
   )
 }

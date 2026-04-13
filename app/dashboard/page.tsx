@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import DashboardRealtime from '@/components/dashboard/DashboardRealtime'
 import { getCachedTeamUsers } from '@/lib/data/dashboard'
@@ -23,6 +25,12 @@ export default async function DashboardPage() {
   const teamId = currentUserProfile?.team_id as string | null
   const teamRole = currentUserProfile?.team_role as string | null
   const hasTeam = !!teamId
+
+  const { data: teamInfo } = hasTeam
+    ? await supabase.from('teams').select('name, slug').eq('id', teamId).single()
+    : { data: null }
+  const teamName = (teamInfo?.name as string | undefined) ?? null
+  const teamSlug = (teamInfo?.slug as string | undefined) ?? null
 
   // Build queries — team-scoped when user has a team, personal-only otherwise
   const intakeLogsQuery = supabase
@@ -74,7 +82,19 @@ export default async function DashboardPage() {
   }))
 
   return (
-    <main className="mx-auto grid w-full max-w-[1200px] gap-4 px-6 py-6 md:grid-cols-2">
+    <main className="mx-auto w-full max-w-[1200px] px-6 py-6">
+      {teamName && teamSlug && (
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <Link
+            href={`/teams/${teamSlug}`}
+            className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Users className="size-4" />
+            <span className="font-medium text-foreground group-hover:underline">{teamName}</span>
+          </Link>
+        </div>
+      )}
+      <div className="grid gap-4 md:grid-cols-2">
       <DashboardRealtime
         initialData={{
           currentUserId: user.id,
@@ -92,6 +112,7 @@ export default async function DashboardPage() {
           teamRole,
         }}
       />
+      </div>
     </main>
   )
 }
