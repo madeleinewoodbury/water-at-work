@@ -73,6 +73,7 @@ export default async function HistoryPage({
       .from('users')
       .select('id, email, display_name, daily_goal, created_at')
       .eq('team_id', teamId)
+      .eq('is_active', true)
 
     const overridesQuery = supabase
       .from('daily_goal_overrides')
