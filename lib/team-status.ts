@@ -20,7 +20,9 @@ function getExpectedProgressPercent(currentHour: number): number {
 
 export function getTeamProgressPercent(teamTotal: number, teamGoal: number): number {
   if (teamGoal <= 0) return 0
-  return Math.max(0, Math.round((teamTotal / teamGoal) * 100))
+  // Floor (not round) so we never claim 100% before the goal is actually met —
+  // e.g. 271.6/272 = 99.85% must read 99%, not round up to a false "Goal reached!"
+  return Math.max(0, Math.floor((teamTotal / teamGoal) * 100))
 }
 
 export function getTeamStatus(teamPercent: number, currentHour: number): TeamStatus {
