@@ -1,5 +1,7 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { RETIRED_HEADER } from '@/lib/retirement'
 import { ThemeToggle } from './ThemeToggle'
 import UserMenu from './UserMenu'
 import BrandLogo from './BrandLogo'
@@ -12,6 +14,9 @@ const navPrimaryClass =
   'inline-flex h-7 cursor-pointer items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85'
 
 export default async function Navbar() {
+  // The retired splash page has no navbar and must not call Supabase.
+  if ((await headers()).get(RETIRED_HEADER)) return null
+
   const supabase = await createClient()
   const {
     data: { user },

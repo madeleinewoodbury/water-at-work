@@ -36,6 +36,8 @@ Before adding routes, data fetching, caching, or mutations, read the relevant gu
 
 **Middleware** lives in `proxy.ts` (not `middleware.ts`) — Next.js 16 renamed it.
 
+**Retirement** — The app retires automatically at `RETIREMENT_AT` (default `2026-12-01T00:00:00Z`, overridable via the `RETIREMENT_AT` env var), defined in `lib/retirement.ts`. From then on `proxy.ts` short-circuits before creating any Supabase client: pages are rewritten to the static splash at `app/retired/page.tsx`, `/api/*` returns `{ retired: true }`, and non-GET requests get 410. The proxy sets the `x-waw-retired` request header so `Navbar` renders nothing (and skips Supabase). `/retired` can always be visited directly to preview the splash.
+
 **Auth flow** — after email confirmation, `app/auth/callback/route.ts` redirects new users to `/onboarding` (not `/dashboard`). The onboarding page collects `display_name` and `daily_goal`, then redirects to `/teams` so new users can create or join a team. If `display_name` is already set, `/onboarding` redirects to `/dashboard` (has team) or `/teams` (no team). Existing users signing in go directly to `/dashboard` via `signIn()` in `app/auth/actions.ts`.
 
 **Server actions** live alongside their route: `app/[route]/actions.ts`, marked `'use server'`. Dashboard actions do **not** call `revalidatePath()` — real-time subscriptions handle UI updates instead.
