@@ -3,7 +3,7 @@ import BrandLogo from '@/components/BrandLogo'
 
 export const metadata: Metadata = {
   title: 'WaW — Water at Work has been retired',
-  description: 'Water at Work has been retired. Thanks for staying hydrated!',
+  description: 'Water at Work has been retired. Thank you for staying hydrated!',
 }
 
 // Static splash page. Must not import anything that talks to Supabase.
@@ -21,7 +21,7 @@ export default function RetiredPage() {
       </h1>
 
       <p className="mt-6 max-w-md text-lg text-muted-foreground">
-        Thanks for staying hydrated with us. Keep that water bottle close. 💧
+        Thank you for staying hydrated. Keep that water bottle close. 💧
       </p>
     </main>
   )

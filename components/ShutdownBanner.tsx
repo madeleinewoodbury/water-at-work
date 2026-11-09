@@ -21,7 +21,7 @@ export default async function ShutdownBanner() {
         </p>
         <p className="mt-0.5">
           The app and its database will be shut down {SHUTDOWN_WHEN}, and all
-          data will be permanently deleted. Thanks for staying hydrated with us!
+          data will be permanently deleted. Thank you for staying hydrated!
         </p>
       </div>
     </div>
