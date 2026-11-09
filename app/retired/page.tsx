@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import BrandLogo from '@/components/BrandLogo'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import StatsReveal from '@/components/StatsReveal'
 import RandomWowGif, { WowGifPlaceholder } from '@/components/RandomWowGif'
 
@@ -12,7 +13,11 @@ export const metadata: Metadata = {
 // Static splash page. Must not import anything that talks to Supabase.
 export default function RetiredPage() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-14 text-center">
+    <main className="relative flex flex-1 flex-col items-center justify-center px-6 py-14 text-center">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+
       <BrandLogo variant="page" />
 
       <h1 className="mt-10 max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
