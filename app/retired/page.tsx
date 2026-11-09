@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import BrandLogo from '@/components/BrandLogo'
+import StatsReveal from '@/components/StatsReveal'
 import RandomWowGif, { WowGifPlaceholder } from '@/components/RandomWowGif'
 
 export const metadata: Metadata = {
@@ -23,7 +24,7 @@ export default function RetiredPage() {
       </h1>
 
       {/* Final all-time totals, taken from the database before shutdown. */}
-      <div className="mt-10 rounded-2xl border border-primary/20 bg-primary/5 px-8 py-6">
+      <StatsReveal>
         <Suspense fallback={<WowGifPlaceholder />}>
           <RandomWowGif />
         </Suspense>
@@ -33,7 +34,7 @@ export default function RetiredPage() {
           That&apos;s about 3,100 glasses of water, or five full bathtubs, across
           1,486 logs.
         </p>
-      </div>
+      </StatsReveal>
 
       <p className="mt-8 max-w-md text-lg text-muted-foreground">
         Thank you for staying hydrated. 💧
