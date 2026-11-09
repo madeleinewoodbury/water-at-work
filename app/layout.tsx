@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import NavbarSkeleton from "@/components/NavbarSkeleton";
+import ShutdownBanner from "@/components/ShutdownBanner";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
@@ -33,6 +34,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <Suspense fallback={null}>
+          <ShutdownBanner />
+        </Suspense>
         <Suspense fallback={null}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Suspense fallback={<NavbarSkeleton />}>
