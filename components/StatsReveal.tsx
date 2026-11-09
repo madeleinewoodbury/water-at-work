@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 
 // Hides its children behind a button until clicked.
 export default function StatsReveal({ children }: { children: React.ReactNode }) {
@@ -16,9 +17,13 @@ export default function StatsReveal({ children }: { children: React.ReactNode })
           // Move focus to the revealed stats so keyboard and screen reader users land on them.
           requestAnimationFrame(() => panelRef.current?.focus())
         }}
-        className="mt-10 inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="group mt-10 inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-primary/30 bg-background px-5 text-sm font-medium text-primary transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
-        💧 See how much we drank
+        See how much we drank
+        <ChevronDown
+          className="size-4 transition-transform group-hover:translate-y-0.5"
+          aria-hidden="true"
+        />
       </button>
     )
   }
