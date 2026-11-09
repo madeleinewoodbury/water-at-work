@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import BrandLogo from '@/components/BrandLogo'
+import RandomWowGif, { WowGifPlaceholder } from '@/components/RandomWowGif'
 
 export const metadata: Metadata = {
   title: 'WaW — Water at Work has been retired',
@@ -20,7 +22,20 @@ export default function RetiredPage() {
         </span>
       </h1>
 
-      <p className="mt-6 max-w-md text-lg text-muted-foreground">
+      {/* Final all-time totals, taken from the database before shutdown. */}
+      <div className="mt-10 rounded-2xl border border-primary/20 bg-primary/5 px-8 py-6">
+        <Suspense fallback={<WowGifPlaceholder />}>
+          <RandomWowGif />
+        </Suspense>
+        <p className="text-sm font-medium text-muted-foreground">Together we drank</p>
+        <p className="mt-1 text-4xl font-bold tracking-tight text-primary">778 liters</p>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+          That&apos;s about 3,100 glasses of water, or five full bathtubs, across
+          1,486 logs.
+        </p>
+      </div>
+
+      <p className="mt-8 max-w-md text-lg text-muted-foreground">
         Thank you for staying hydrated. 💧
       </p>
     </main>
