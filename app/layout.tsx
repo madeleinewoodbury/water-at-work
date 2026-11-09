@@ -34,7 +34,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ShutdownBanner />
+        <Suspense fallback={null}>
+          <ShutdownBanner />
+        </Suspense>
         <Suspense fallback={null}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Suspense fallback={<NavbarSkeleton />}>

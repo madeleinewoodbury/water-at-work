@@ -1,9 +1,14 @@
+import { headers } from 'next/headers'
 import { TriangleAlert } from 'lucide-react'
+import { RETIRED_HEADER } from '@/lib/retirement'
 
 // Shown in the banner as "will be shut down <SHUTDOWN_WHEN>".
 const SHUTDOWN_WHEN = 'on December 1, 2026'
 
-export default function ShutdownBanner() {
+export default async function ShutdownBanner() {
+  // Not shown on the retired splash page.
+  if ((await headers()).get(RETIRED_HEADER)) return null
+
   return (
     <div
       role="alert"
