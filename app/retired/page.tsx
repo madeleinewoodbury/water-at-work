@@ -25,15 +25,15 @@ export default function RetiredPage() {
 
       {/* Final all-time totals, taken from the database before shutdown. */}
       <StatsReveal>
-        <Suspense fallback={<WowGifPlaceholder />}>
-          <RandomWowGif />
-        </Suspense>
         <p className="text-sm font-medium text-muted-foreground">Together we drank</p>
         <p className="mt-1 text-4xl font-bold tracking-tight text-primary">778 liters</p>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
           That&apos;s about 3,100 glasses of water, or five full bathtubs, across
           1,486 logs.
         </p>
+        <Suspense fallback={<WowGifPlaceholder />}>
+          <RandomWowGif />
+        </Suspense>
       </StatsReveal>
 
       <p className="mt-8 max-w-md text-lg text-muted-foreground">

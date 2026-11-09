@@ -1,16 +1,18 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, X } from 'lucide-react'
 
-// Hides its children behind a button until clicked.
+// Hides its children behind a button until clicked. The revealed card can be closed again.
 export default function StatsReveal({ children }: { children: React.ReactNode }) {
   const [revealed, setRevealed] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   if (!revealed) {
     return (
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => {
           setRevealed(true)
@@ -32,8 +34,19 @@ export default function StatsReveal({ children }: { children: React.ReactNode })
     <div
       ref={panelRef}
       tabIndex={-1}
-      className="mt-10 rounded-2xl border border-primary/20 bg-primary/5 px-8 py-6 outline-none animate-in fade-in zoom-in-95 duration-500"
+      className="relative mt-10 rounded-2xl border border-primary/20 bg-primary/5 px-8 py-6 outline-none animate-in fade-in zoom-in-95 duration-500"
     >
+      <button
+        type="button"
+        aria-label="Close stats"
+        onClick={() => {
+          setRevealed(false)
+          requestAnimationFrame(() => buttonRef.current?.focus())
+        }}
+        className="absolute right-3 top-3 inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        <X className="size-4" aria-hidden="true" />
+      </button>
       {children}
     </div>
   )

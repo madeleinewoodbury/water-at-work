@@ -13,7 +13,7 @@ function pickRandomGif() {
   return WOW_GIFS[Math.floor(Math.random() * WOW_GIFS.length)]
 }
 
-const imgClassName = 'mx-auto mb-5 h-44 w-auto max-w-full rounded-xl bg-primary/10 object-contain'
+const imgClassName = 'mx-auto mt-5 h-auto max-h-44 w-auto max-w-full rounded-xl bg-primary/10'
 
 // Picks a new GIF on every request. Render inside <Suspense>.
 export default async function RandomWowGif() {
@@ -33,5 +33,5 @@ export default async function RandomWowGif() {
 }
 
 export function WowGifPlaceholder() {
-  return <div aria-hidden="true" className="mx-auto mb-5 h-44 w-72 max-w-full rounded-xl bg-primary/10" />
+  return <div aria-hidden="true" className="mx-auto mt-5 h-44 w-72 max-w-full rounded-xl bg-primary/10" />
 }
