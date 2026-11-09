@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import BrandLogo from '@/components/BrandLogo'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import StatsReveal from '@/components/StatsReveal'
 import RandomWowGif, { WowGifPlaceholder } from '@/components/RandomWowGif'
 
 export const metadata: Metadata = {
@@ -11,7 +13,11 @@ export const metadata: Metadata = {
 // Static splash page. Must not import anything that talks to Supabase.
 export default function RetiredPage() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-14 text-center">
+    <main className="relative flex flex-1 flex-col items-center justify-center px-6 py-14 text-center">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+
       <BrandLogo variant="page" />
 
       <h1 className="mt-10 max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
@@ -23,17 +29,17 @@ export default function RetiredPage() {
       </h1>
 
       {/* Final all-time totals, taken from the database before shutdown. */}
-      <div className="mt-10 rounded-2xl border border-primary/20 bg-primary/5 px-8 py-6">
-        <Suspense fallback={<WowGifPlaceholder />}>
-          <RandomWowGif />
-        </Suspense>
+      <StatsReveal>
         <p className="text-sm font-medium text-muted-foreground">Together we drank</p>
         <p className="mt-1 text-4xl font-bold tracking-tight text-primary">778 liters</p>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
           That&apos;s about 3,100 glasses of water, or five full bathtubs, across
           1,486 logs.
         </p>
-      </div>
+        <Suspense fallback={<WowGifPlaceholder />}>
+          <RandomWowGif />
+        </Suspense>
+      </StatsReveal>
 
       <p className="mt-8 max-w-md text-lg text-muted-foreground">
         Thank you for staying hydrated. 💧
