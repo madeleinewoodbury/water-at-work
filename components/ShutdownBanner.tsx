@@ -1,8 +1,7 @@
 import { TriangleAlert } from 'lucide-react'
 
-// When a date is decided, set it here (e.g. 'on December 31, 2026').
-// Leave as 'soon' until then.
-const SHUTDOWN_WHEN = 'soon'
+// Shown in the banner as "will be shut down <SHUTDOWN_WHEN>".
+const SHUTDOWN_WHEN = 'on December 1, 2026'
 
 export default function ShutdownBanner() {
   return (
