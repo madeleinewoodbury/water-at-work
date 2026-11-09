@@ -21,7 +21,7 @@ export default function RetiredPage() {
       </h1>
 
       <p className="mt-6 max-w-md text-lg text-muted-foreground">
-        Thank you for staying hydrated. Keep that water bottle close. 💧
+        Thank you for staying hydrated. 💧
       </p>
     </main>
   )
